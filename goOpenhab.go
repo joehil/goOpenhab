@@ -2,11 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/illarion/gonotify"
-	"github.com/natefinch/lumberjack"
-	"github.com/spf13/viper"
 	"hash/fnv"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -14,6 +10,10 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/illarion/gonotify"
+	"github.com/natefinch/lumberjack"
+	"github.com/spf13/viper"
 )
 
 // var read_log1 string = "/var/log/monit.log"
@@ -39,7 +39,7 @@ func main() {
 	if len(os.Args) > 1 {
 		a1 := os.Args[1]
 		if a1 == "reload" {
-			b, err := ioutil.ReadFile(pidfile)
+			b, err := os.ReadFile(pidfile)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -50,7 +50,7 @@ func main() {
 			os.Exit(0)
 		}
 		if a1 == "mtraceon" {
-			b, err := ioutil.ReadFile(pidfile)
+			b, err := os.ReadFile(pidfile)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -61,7 +61,7 @@ func main() {
 			os.Exit(0)
 		}
 		if a1 == "mtraceoff" {
-			b, err := ioutil.ReadFile(pidfile)
+			b, err := os.ReadFile(pidfile)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -131,8 +131,6 @@ func proc_run() {
 	}
 
 	// Setup inotify watcher
-	//        watcher, err := gonotify.NewFileWatcherSlice(gonotify.IN_MODIFY | gonotify.IN_MOVED_FROM | gonotify.IN_MOVED_TO | gonotify.IN_CREATE,
-	//                        logs)
 	watcher, err := gonotify.NewFileWatcher(gonotify.IN_MODIFY|gonotify.IN_MOVED_FROM|gonotify.IN_MOVED_TO|gonotify.IN_CREATE,
 		logs[0], logs[1])
 
@@ -187,7 +185,7 @@ func proc_log(f *os.File, p int64, fnr uint32) int64 {
 // Write a pid file, but first make sure it doesn't exist with a running pid.
 func writePidFile(pidFile string) error {
 	// Read in the pid file as a slice of bytes.
-	if piddata, err := ioutil.ReadFile(pidFile); err == nil {
+	if piddata, err := os.ReadFile(pidFile); err == nil {
 		// Convert the file contents to an integer.
 		if pid, err := strconv.Atoi(string(piddata)); err == nil {
 			// Look for the pid in the process list.
@@ -202,7 +200,7 @@ func writePidFile(pidFile string) error {
 	}
 	// If we get here, then the pidfile didn't exist,
 	// or the pid in it doesn't belong to the user running this app.
-	return ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d", os.Getpid())), 0664)
+	return os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", os.Getpid())), 0664)
 }
 
 func catch_signals(c <-chan os.Signal) {
