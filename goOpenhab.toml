@@ -1,0 +1,9 @@
+own_log = "<full path of own log file>"
+pid_file = "<full path of pid file>"
+do_trace = false
+
+logs = [
+  "<full path of log1>",
+  "<full path of log2>"
+]
+
