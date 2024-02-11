@@ -195,21 +195,33 @@ func procLine(msg string) {
 			mInfo.msgEvent = msg[33:69]
 			rest := msg[73:]
 			mes := strings.Split(rest, " ")
-			if len(mes) == 7 {
-				mInfo.msgObjtype = mes[0]
-				mInfo.msgObject = mes[1]
-				mInfo.msgOldstat = mes[4]
-				mInfo.msgNewstate = mes[6]
+			if mInfo.msgEvent == "openhab.event.ItemStateChangedEvent" {
+				if len(mes) == 7 {
+					mInfo.msgObjtype = mes[0]
+					mInfo.msgObject = mes[1]
+					mInfo.msgOldstat = mes[4]
+					mInfo.msgNewstate = mes[6]
+				}
+				if len(mes) == 9 {
+					mInfo.msgObjtype = mes[0]
+					mInfo.msgObject = mes[1]
+					mInfo.msgOldstat = strings.Join(mes[5:5], " ")
+					mInfo.msgNewstate = strings.Join(mes[7:8], " ")
+				}
+				//			fmt.Println("012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")
+				//			fmt.Println(msg)
+				//fmt.Println(mInfo)
 			}
-			if len(mes) == 9 {
-				mInfo.msgObjtype = mes[0]
-				mInfo.msgObject = mes[1]
-				mInfo.msgOldstat = strings.Join(mes[5:5], " ")
-				mInfo.msgNewstate = strings.Join(mes[7:8], " ")
+			if mInfo.msgEvent == "openhab.event.ChannelTriggeredEvent" {
+				if len(mes) >= 3 {
+					mInfo.msgObject = mes[0]
+					mInfo.msgNewstate = mes[2]
+				}
+				//			fmt.Println("012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")
+				//			fmt.Println(msg)
+				//fmt.Println(mInfo)
 			}
-			//			fmt.Println("012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")
-			//			fmt.Println(msg)
-			//fmt.Println(mInfo)
+
 			processRulesInfo(mInfo)
 		}
 		if msgType == "WARN" {

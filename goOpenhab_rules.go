@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 type User struct {
 	id   string
 	ip   string
@@ -12,10 +10,12 @@ type User struct {
 var users map[string]User
 
 func processRulesInfo(mInfo *msgInfo) {
-	if (mInfo.msgObject == "'XXXHeizung_unten_Temperatur'") ||
-		(mInfo.msgObject == "'XXXCPU_Last'") {
-		genVar.telegram <- "Test Telegram"
-		fmt.Print(mInfo.msgTime)
-		fmt.Println(" test telegram")
+	if (mInfo.msgObject == "astro:sun:local:set#event") &&
+		(mInfo.msgNewstate == "START") {
+		genVar.telegram <- "Sonnenuntergang"
+	}
+	if (mInfo.msgObject == "astro:sun:local:rise#event") &&
+		(mInfo.msgNewstate == "END") {
+		genVar.telegram <- "Sonnenaufgang"
 	}
 }
