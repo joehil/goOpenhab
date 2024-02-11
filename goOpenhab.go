@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"hash/fnv"
 	"log"
 	"os"
 	"os/exec"
@@ -10,14 +9,38 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
-	"github.com/illarion/gonotify"
 	"github.com/natefinch/lumberjack"
+	"github.com/nxadm/tail"
+	"github.com/patrickmn/go-cache"
 	"github.com/spf13/viper"
 )
 
-// var read_log1 string = "/var/log/monit.log"
-// var read_log2 string = "/var/log/virtualmin/remote-browser.eu_error_log"
+type msgInfo struct {
+	msgDate     string
+	msgTime     string
+	msgEvent    string
+	msgObjtype  string
+	msgObject   string
+	msgOldstat  string
+	msgNewstate string
+}
+
+type msgWarn struct {
+	msgDate  string
+	msgTime  string
+	msgEvent string
+	msgText  string
+}
+
+type generalVars struct {
+	pers     *cache.Cache
+	telegram chan string
+	tbtoken  string
+	chatid   int64
+}
+
 var do_trace bool = false
 var msg_trace bool = false
 var pidfile string
@@ -26,6 +49,9 @@ var logs []string
 var rlogs []*os.File
 var rpos []int64
 var loghash []uint32
+var timeOld time.Time
+
+var genVar *generalVars = new(generalVars)
 
 func main() {
 	// Set location of config
@@ -34,6 +60,16 @@ func main() {
 
 	// Read config
 	read_config()
+
+	timeOld = time.Now()
+
+	genVar.pers = cache.New(3*time.Hour, 10*time.Hour)
+	traceLog("Persistence was initialized")
+
+	genVar.telegram = make(chan string)
+
+	go sendTelegram(genVar.telegram)
+	traceLog("Telegram interface was initialized")
 
 	// Get commandline args
 	if len(os.Args) > 1 {
@@ -71,8 +107,19 @@ func main() {
 			_ = cmd.Start()
 			os.Exit(0)
 		}
+		if a1 == "stop" {
+			b, err := os.ReadFile(pidfile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			s := string(b)
+			fmt.Println("Stop goOpenhab")
+			cmd := exec.Command("kill", "-9", s)
+			_ = cmd.Start()
+			os.Exit(0)
+		}
 		if a1 == "run" {
-			proc_run()
+			procRun()
 		}
 		fmt.Println("parameter invalid")
 		os.Exit(-1)
@@ -82,7 +129,7 @@ func main() {
 	}
 }
 
-func proc_run() {
+func procRun() {
 	// Write pidfile
 	err := writePidFile(pidfile)
 	if err != nil {
@@ -105,81 +152,76 @@ func proc_run() {
 	log.Println("Trace set to: ", do_trace)
 
 	// Do customized initialization
-	proc_init()
+	//proc_init()
 
 	// Catch signals
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2)
+	signal.Notify(signals, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGKILL)
 	go catch_signals(signals)
 
 	// Open logs to read
 	if do_trace {
 		log.Println(logs)
 	}
-	for i, rlog := range logs {
-		r, err := os.Open(rlog)
-		if err != nil {
-			log.Fatalf("error opening %s: %v", rlog, err)
-		}
-		rlogs = append(rlogs, r)
-		defer rlogs[i].Close()
-		n, err := rlogs[i].Seek(0, 2)
-		rpos = append(rpos, n)
-		hash := fnv.New32()
-		hash.Write([]byte(rlog))
-		loghash = append(loghash, hash.Sum32())
+	for _, rlog := range logs {
+		traceLog("Task started for " + rlog)
+		go tailLog(rlog)
 	}
-
-	// Setup inotify watcher
-	watcher, err := gonotify.NewFileWatcher(gonotify.IN_MODIFY|gonotify.IN_MOVED_FROM|gonotify.IN_MOVED_TO|gonotify.IN_CREATE,
-		logs[0], logs[1])
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer watcher.Close()
-
-	// Read watcher events
 	for {
-		e := <-watcher.C
-		if do_trace {
-			log.Println("event: ", e.Wd, e.Name, e.Mask)
-		}
-		switch e.Mask {
-		case 2:
-			rpos[e.Wd-1] = proc_log(rlogs[e.Wd-1], rpos[e.Wd-1], e.Wd-1)
-		case 64:
-			rlogs[e.Wd-1].Close()
-		case 256:
-			rlogs[e.Wd-1], err = os.Open(logs[e.Wd-1])
-			if err != nil {
-				log.Fatalf("error opening %s: %v", logs[e.Wd-1], err)
-			}
-			rpos[e.Wd-1], err = rlogs[e.Wd-1].Seek(0, 0)
-		default:
-			log.Println("Invalid event number")
-		}
+		time.Sleep(10 * time.Second)
 	}
 }
 
-func proc_log(f *os.File, p int64, fnr uint32) int64 {
-	b1 := make([]byte, 500)
-	_, _ = f.Seek(p, 0)
-	m, err := f.Read(b1)
-	if m > 0 && err == nil {
-		t := string(b1)[:m]
-		mes := strings.Split(t, "\n")
-		for _, ames := range mes[:len(mes)-1] {
-			// Perform customized processing due to the arrival of messages
-			go process_rules(ames, fnr)
-			//============================================================
-			//        		if res {
-			//				log.Print(ames)
-			//			}
-		}
-		p = p + int64(m)
+func traceLog(message string) {
+	if do_trace {
+		log.Println(message)
 	}
-	return p
+}
+
+func msgLog(message string) {
+	if msg_trace {
+		log.Println(message)
+	}
+}
+
+func procLine(msg string) {
+	var mInfo *msgInfo = new(msgInfo)
+	var mWarn *msgWarn = new(msgWarn)
+	if len(msg) > 75 {
+		msgType := msg[25:29]
+		if msgType == "INFO" {
+			mInfo.msgDate = msg[0:10]
+			mInfo.msgTime = msg[11:23]
+			mInfo.msgEvent = msg[33:69]
+			rest := msg[73:]
+			mes := strings.Split(rest, " ")
+			if len(mes) == 7 {
+				mInfo.msgObjtype = mes[0]
+				mInfo.msgObject = mes[1]
+				mInfo.msgOldstat = mes[4]
+				mInfo.msgNewstate = mes[6]
+			}
+			if len(mes) == 9 {
+				mInfo.msgObjtype = mes[0]
+				mInfo.msgObject = mes[1]
+				mInfo.msgOldstat = strings.Join(mes[5:5], " ")
+				mInfo.msgNewstate = strings.Join(mes[7:8], " ")
+			}
+			//			fmt.Println("012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")
+			//			fmt.Println(msg)
+			//fmt.Println(mInfo)
+			processRulesInfo(mInfo)
+		}
+		if msgType == "WARN" {
+			mWarn.msgDate = msg[0:10]
+			mWarn.msgTime = msg[11:23]
+			mWarn.msgEvent = msg[33:69]
+			mWarn.msgText = msg[73:]
+			//			fmt.Println("012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")
+			//			fmt.Println(msg)
+			//fmt.Println(mWarn)
+		}
+	}
 }
 
 // Write a pid file, but first make sure it doesn't exist with a running pid.
@@ -209,7 +251,7 @@ func catch_signals(c <-chan os.Signal) {
 		log.Println("Got signal:", s)
 		if s == syscall.SIGHUP {
 			read_config()
-			read_users()
+			//			read_users()
 		}
 		if s == syscall.SIGUSR1 {
 			msg_trace = true
@@ -218,6 +260,10 @@ func catch_signals(c <-chan os.Signal) {
 		if s == syscall.SIGUSR2 {
 			msg_trace = false
 			log.Println("msg_trace switched off")
+		}
+		if s == syscall.SIGKILL {
+			log.Println("msg_trace switched off")
+			os.Exit(0)
 		}
 	}
 }
@@ -238,6 +284,8 @@ func read_config() {
 	}
 	logs = viper.GetStringSlice("logs")
 	do_trace = viper.GetBool("do_trace")
+	genVar.tbtoken = viper.GetString("tbtoken")
+	genVar.chatid = int64(viper.GetInt("chatid"))
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)
@@ -249,6 +297,20 @@ func read_config() {
 	}
 }
 
+func tailLog(logFile string) {
+	t, err := tail.TailFile(logFile, tail.Config{Follow: true})
+	if err != nil {
+		panic(err)
+	}
+	for line := range t.Lines {
+		tNow := time.Now()
+		if tNow.Sub(timeOld) > time.Second {
+			msgLog(line.Text)
+			go procLine(line.Text)
+		}
+	}
+}
+
 func myUsage() {
 	fmt.Printf("Usage: %s argument\n", os.Args[0])
 	fmt.Println("Arguments:")
@@ -256,4 +318,5 @@ func myUsage() {
 	fmt.Println("reload        Make running daemon reload it's configuration")
 	fmt.Println("mtraceon      Make running daemon switch it's message tracing on (useful for coding new rules)")
 	fmt.Println("mtraceoff     Make running daemon switch it's message tracing off")
+	fmt.Println("stop          Stop daemon")
 }
