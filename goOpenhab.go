@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"plugin"
 	"strconv"
 	"strings"
 	"syscall"
@@ -15,43 +16,25 @@ import (
 	"github.com/nxadm/tail"
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/viper"
+	"github.com/joehil/jhtype"
 )
-
-type msgInfo struct {
-	msgDate     string
-	msgTime     string
-	msgEvent    string
-	msgObjtype  string
-	msgObject   string
-	msgOldstat  string
-	msgNewstate string
-}
-
-type msgWarn struct {
-	msgDate  string
-	msgTime  string
-	msgEvent string
-	msgText  string
-}
-
-type generalVars struct {
-	pers     *cache.Cache
-	telegram chan string
-	tbtoken  string
-	chatid   int64
-}
 
 var do_trace bool = false
 var msg_trace bool = false
 var pidfile string
 var ownlog string
+var rulesPlugin string
+var usePlugin bool = false
 var logs []string
 var rlogs []*os.File
 var rpos []int64
 var loghash []uint32
 var timeOld time.Time
 
-var genVar *generalVars = new(generalVars)
+var tryRulesFunc func(mInfo jhtype.Msginfo, genVars *jhtype.Generalvars)
+
+var genVar jhtype.Generalvars
+var ptrGenVars *jhtype.Generalvars 
 
 func main() {
 	// Set location of config
@@ -63,12 +46,14 @@ func main() {
 
 	timeOld = time.Now()
 
-	genVar.pers = cache.New(3*time.Hour, 10*time.Hour)
+	genVar.Pers = cache.New(3*time.Hour, 10*time.Hour)
 	traceLog("Persistence was initialized")
 
-	genVar.telegram = make(chan string)
+	genVar.Telegram = make(chan string)
 
-	go sendTelegram(genVar.telegram)
+	ptrGenVars = &genVar
+
+	go sendTelegram(genVar.Telegram)
 	traceLog("Telegram interface was initialized")
 
 	// Get commandline args
@@ -163,6 +148,9 @@ func procRun() {
 	if do_trace {
 		log.Println(logs)
 	}
+
+	loadPlugin()
+
 	for _, rlog := range logs {
 		traceLog("Task started for " + rlog)
 		go tailLog(rlog)
@@ -185,53 +173,47 @@ func msgLog(message string) {
 }
 
 func procLine(msg string) {
-	var mInfo *msgInfo = new(msgInfo)
-	var mWarn *msgWarn = new(msgWarn)
+	var mInfo jhtype.Msginfo
+	var mWarn jhtype.Msgwarn
 	if len(msg) > 75 {
 		msgType := msg[25:29]
 		if msgType == "INFO" {
-			mInfo.msgDate = msg[0:10]
-			mInfo.msgTime = msg[11:23]
-			mInfo.msgEvent = msg[33:69]
+			mInfo.Msgdate = msg[0:10]
+			mInfo.Msgtime = msg[11:23]
+			mInfo.Msgevent = strings.Trim(msg[33:69], " ")
 			rest := msg[73:]
 			mes := strings.Split(rest, " ")
-			if mInfo.msgEvent == "openhab.event.ItemStateChangedEvent" {
+			if mInfo.Msgevent == "openhab.event.ItemStateChangedEvent" {
 				if len(mes) == 7 {
-					mInfo.msgObjtype = mes[0]
-					mInfo.msgObject = mes[1]
-					mInfo.msgOldstat = mes[4]
-					mInfo.msgNewstate = mes[6]
+					mInfo.Msgobjtype = mes[0]
+					mInfo.Msgobject = mes[1]
+					mInfo.Msgoldstat = mes[4]
+					mInfo.Msgnewstate = mes[6]
 				}
 				if len(mes) == 9 {
-					mInfo.msgObjtype = mes[0]
-					mInfo.msgObject = mes[1]
-					mInfo.msgOldstat = strings.Join(mes[5:5], " ")
-					mInfo.msgNewstate = strings.Join(mes[7:8], " ")
+					mInfo.Msgobjtype = mes[0]
+					mInfo.Msgobject = mes[1]
+					mInfo.Msgoldstat = strings.Join(mes[4:5], " ")
+					mInfo.Msgnewstate = strings.Join(mes[7:8], " ")
 				}
-				//			fmt.Println("012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")
-				//			fmt.Println(msg)
-				//fmt.Println(mInfo)
 			}
-			if mInfo.msgEvent == "openhab.event.ChannelTriggeredEvent" {
+			if mInfo.Msgevent == "openhab.event.ChannelTriggeredEvent" {
 				if len(mes) >= 3 {
-					mInfo.msgObject = mes[0]
-					mInfo.msgNewstate = mes[2]
+					mInfo.Msgobject = mes[0]
+					mInfo.Msgnewstate = mes[2]
 				}
-				//			fmt.Println("012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")
-				//			fmt.Println(msg)
-				//fmt.Println(mInfo)
 			}
 
 			processRulesInfo(mInfo)
+			if usePlugin {
+				tryRulesFunc(mInfo, ptrGenVars)
+			}
 		}
 		if msgType == "WARN" {
-			mWarn.msgDate = msg[0:10]
-			mWarn.msgTime = msg[11:23]
-			mWarn.msgEvent = msg[33:69]
-			mWarn.msgText = msg[73:]
-			//			fmt.Println("012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")
-			//			fmt.Println(msg)
-			//fmt.Println(mWarn)
+			mWarn.Msgdate = msg[0:10]
+			mWarn.Msgtime = msg[11:23]
+			mWarn.Msgevent = msg[33:69]
+			mWarn.Msgtext = msg[73:]
 		}
 	}
 }
@@ -263,7 +245,7 @@ func catch_signals(c <-chan os.Signal) {
 		log.Println("Got signal:", s)
 		if s == syscall.SIGHUP {
 			read_config()
-			//			read_users()
+			loadPlugin()
 		}
 		if s == syscall.SIGUSR1 {
 			msg_trace = true
@@ -296,13 +278,18 @@ func read_config() {
 	}
 	logs = viper.GetStringSlice("logs")
 	do_trace = viper.GetBool("do_trace")
-	genVar.tbtoken = viper.GetString("tbtoken")
-	genVar.chatid = int64(viper.GetInt("chatid"))
+	genVar.Tbtoken = viper.GetString("tbtoken")
+	genVar.Chatid = int64(viper.GetInt("chatid"))
+	rulesPlugin = viper.GetString("plugin")
+	usePlugin = viper.GetBool("use_plugin")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)
 		log.Println("own_log; ", ownlog)
 		log.Println("pid_file: ", pidfile)
+		log.Println("rules plugin: ", rulesPlugin)
+		log.Println("use plugin: ", usePlugin)
+
 		for i, v := range logs {
 			log.Printf("Index: %d, Value: %v\n", i, v)
 		}
@@ -320,6 +307,42 @@ func tailLog(logFile string) {
 			msgLog(line.Text)
 			go procLine(line.Text)
 		}
+	}
+}
+
+func loadPlugin() {
+	if usePlugin {
+		var ti jhtype.Msginfo
+		usePlugin = false
+
+		// Load the plugin
+		plug, err := plugin.Open(rulesPlugin)
+		if err != nil {
+			traceLog("Error loading plugin:" + err.Error())
+			return
+		}
+
+		// Look up a symbol (an exported function or variable)
+		sym, err := plug.Lookup("TryRules")
+		if err != nil {
+			traceLog(err.Error())
+			return
+		}
+
+		// Assert that loaded symbol is a function and call it
+		tryRulesF, ok := sym.(func(mInfo jhtype.Msginfo, genVars *jhtype.Generalvars))
+		if !ok {
+			traceLog("Invalid symbol type")
+			return
+		}
+
+		traceLog("Plugin loaded")
+
+		tryRulesF(ti, ptrGenVars)
+
+		tryRulesFunc = tryRulesF
+
+		usePlugin = true
 	}
 }
 

@@ -1,21 +1,19 @@
 package main
 
-type User struct {
-	id   string
-	ip   string
-	port uint
-}
+import (
+	"github.com/joehil/jhtype"
+//	"fmt"
+)
 
-// var users []User
-var users map[string]User
-
-func processRulesInfo(mInfo *msgInfo) {
-	if (mInfo.msgObject == "astro:sun:local:set#event") &&
-		(mInfo.msgNewstate == "START") {
-		genVar.telegram <- "Sonnenuntergang"
+func processRulesInfo(mInfo jhtype.Msginfo) {
+//	fmt.Println(genVar.Telegram)
+	if len(mInfo.Msgobject) >= 5 {
+		if mInfo.Msgobject[0:5] == "astro" {
+			genVar.Telegram <- "Astro Event"
+		}
 	}
-	if (mInfo.msgObject == "astro:sun:local:rise#event") &&
-		(mInfo.msgNewstate == "END") {
-		genVar.telegram <- "Sonnenaufgang"
+	if (mInfo.Msgobject == "astro:sun:local:rise#event") &&
+		(mInfo.Msgnewstate == "END") {
+		genVar.Telegram <- "Sonnenaufgang"
 	}
 }
