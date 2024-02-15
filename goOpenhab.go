@@ -151,6 +151,8 @@ func procRun() {
 
 	loadPlugin()
 
+	go timeTrigger()
+
 	for _, rlog := range logs {
 		traceLog("Task started for " + rlog)
 		go tailLog(rlog)
