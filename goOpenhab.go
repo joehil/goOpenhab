@@ -12,11 +12,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joehil/jhtype"
 	"github.com/natefinch/lumberjack"
 	"github.com/nxadm/tail"
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/viper"
-	"github.com/joehil/jhtype"
 )
 
 var do_trace bool = false
@@ -34,7 +34,7 @@ var timeOld time.Time
 var tryRulesFunc func(mInfo jhtype.Msginfo, genVars *jhtype.Generalvars)
 
 var genVar jhtype.Generalvars
-var ptrGenVars *jhtype.Generalvars 
+var ptrGenVars *jhtype.Generalvars
 
 func main() {
 	// Set location of config
@@ -55,6 +55,14 @@ func main() {
 
 	go sendTelegram(genVar.Telegram)
 	traceLog("Telegram interface was initialized")
+
+	genVar.Mqttmsg = make(chan jhtype.Mqttparms, 5)
+
+	go publishMqtt(genVar.Mqttmsg)
+	traceLog("MQTT interface was initialized")
+
+	var jht *jhtype.Mqttparms = new(jhtype.Mqttparms)
+	jht.Topic = "test"
 
 	// Get commandline args
 	if len(os.Args) > 1 {
@@ -152,6 +160,7 @@ func procRun() {
 	loadPlugin()
 
 	go timeTrigger()
+	traceLog("chrono server was initialized")
 
 	for _, rlog := range logs {
 		traceLog("Task started for " + rlog)
@@ -284,6 +293,7 @@ func read_config() {
 	genVar.Chatid = int64(viper.GetInt("chatid"))
 	rulesPlugin = viper.GetString("plugin")
 	usePlugin = viper.GetBool("use_plugin")
+	genVar.Mqttbroker = viper.GetString("mqtt_broker")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)
@@ -291,6 +301,7 @@ func read_config() {
 		log.Println("pid_file: ", pidfile)
 		log.Println("rules plugin: ", rulesPlugin)
 		log.Println("use plugin: ", usePlugin)
+		log.Println("MQTT broker: ", genVar.Mqttbroker)
 
 		for i, v := range logs {
 			log.Printf("Index: %d, Value: %v\n", i, v)
