@@ -61,8 +61,16 @@ func main() {
 	go publishMqtt(genVar.Mqttmsg)
 	traceLog("MQTT interface was initialized")
 
-	var jht *jhtype.Mqttparms = new(jhtype.Mqttparms)
-	jht.Topic = "test"
+	genVar.Getin = make(chan jhtype.Requestin)
+	genVar.Getout = make(chan string)
+
+	go restApiGet(genVar.Getin, genVar.Getout)
+	traceLog("restapi get interface was initialized")
+
+	genVar.Putin = make(chan jhtype.Requestin)
+
+	go restApiPut(genVar.Putin)
+	traceLog("restapi put interface was initialized")
 
 	// Get commandline args
 	if len(os.Args) > 1 {
@@ -166,6 +174,9 @@ func procRun() {
 		traceLog("Task started for " + rlog)
 		go tailLog(rlog)
 	}
+
+	traceLog("goOpenhab is up and running")
+
 	for {
 		time.Sleep(10 * time.Second)
 	}
@@ -294,6 +305,8 @@ func read_config() {
 	rulesPlugin = viper.GetString("plugin")
 	usePlugin = viper.GetBool("use_plugin")
 	genVar.Mqttbroker = viper.GetString("mqtt_broker")
+	genVar.Resturl = viper.GetString("rest_url")
+	genVar.Resttoken = viper.GetString("rest_token")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)
@@ -302,6 +315,7 @@ func read_config() {
 		log.Println("rules plugin: ", rulesPlugin)
 		log.Println("use plugin: ", usePlugin)
 		log.Println("MQTT broker: ", genVar.Mqttbroker)
+		log.Println("Rest url: ", genVar.Resturl)
 
 		for i, v := range logs {
 			log.Printf("Index: %d, Value: %v\n", i, v)
