@@ -1,11 +1,10 @@
 package main
 
 import (
-	"github.com/joehil/jhtype"
 //	"fmt"
 )
 
-func processRulesInfo(mInfo jhtype.Msginfo) {
+func processRulesInfo(mInfo Msginfo) {
 //	fmt.Println(genVar.Telegram)
 	if len(mInfo.Msgobject) >= 5 {
 		if mInfo.Msgobject[0:5] == "astro" {

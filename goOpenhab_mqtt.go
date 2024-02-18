@@ -5,10 +5,9 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/joehil/jhtype"
 )
 
-func publishMqtt(mess chan jhtype.Mqttparms) {
+func publishMqtt(mess chan Mqttparms) {
 	broker := genVar.Mqttbroker
 	var topic string
 	var message string

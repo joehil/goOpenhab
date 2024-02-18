@@ -5,11 +5,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/joehil/jhtype"
 )
 
-func restApiGet(rin chan jhtype.Requestin, rout chan string) {
+func restApiGet(rin chan Requestin, rout chan string) {
 	url := genVar.Resturl     // Die URL der API, die du aufrufen möchtest
 	token := genVar.Resttoken // Der Bearer Token für die Authentifizierung
 
@@ -46,7 +44,7 @@ func restApiGet(rin chan jhtype.Requestin, rout chan string) {
 	}
 }
 
-func restApiPut(rin chan jhtype.Requestin) {
+func restApiPut(rin chan Requestin) {
 	url := genVar.Resturl     // Die URL der API, die du aufrufen möchtest
 	token := genVar.Resttoken // Der Bearer Token für die Authentifizierung
 
@@ -72,7 +70,7 @@ func restApiPut(rin chan jhtype.Requestin) {
 		}
 
 		// Prüfe den Statuscode des Response, um sicherzustellen, dass der Request erfolgreich war
-		if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != 202 {
 			traceLog(fmt.Sprintf("restapi put statuscode: %v", resp.StatusCode))
 		}
 		resp.Body.Close()

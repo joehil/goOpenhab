@@ -6,13 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"plugin"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/joehil/jhtype"
 	"github.com/natefinch/lumberjack"
 	"github.com/nxadm/tail"
 	"github.com/patrickmn/go-cache"
@@ -23,18 +21,14 @@ var do_trace bool = false
 var msg_trace bool = false
 var pidfile string
 var ownlog string
-var rulesPlugin string
-var usePlugin bool = false
 var logs []string
 var rlogs []*os.File
 var rpos []int64
 var loghash []uint32
 var timeOld time.Time
 
-var tryRulesFunc func(mInfo jhtype.Msginfo, genVars *jhtype.Generalvars)
-
-var genVar jhtype.Generalvars
-var ptrGenVars *jhtype.Generalvars
+var genVar Generalvars
+var ptrGenVars *Generalvars
 
 func main() {
 	// Set location of config
@@ -56,18 +50,18 @@ func main() {
 	go sendTelegram(genVar.Telegram)
 	traceLog("Telegram interface was initialized")
 
-	genVar.Mqttmsg = make(chan jhtype.Mqttparms, 5)
+	genVar.Mqttmsg = make(chan Mqttparms, 5)
 
 	go publishMqtt(genVar.Mqttmsg)
 	traceLog("MQTT interface was initialized")
 
-	genVar.Getin = make(chan jhtype.Requestin)
+	genVar.Getin = make(chan Requestin)
 	genVar.Getout = make(chan string)
 
 	go restApiGet(genVar.Getin, genVar.Getout)
 	traceLog("restapi get interface was initialized")
 
-	genVar.Putin = make(chan jhtype.Requestin)
+	genVar.Putin = make(chan Requestin)
 
 	go restApiPut(genVar.Putin)
 	traceLog("restapi put interface was initialized")
@@ -165,8 +159,6 @@ func procRun() {
 		log.Println(logs)
 	}
 
-	loadPlugin()
-
 	go timeTrigger()
 	traceLog("chrono server was initialized")
 
@@ -195,8 +187,8 @@ func msgLog(message string) {
 }
 
 func procLine(msg string) {
-	var mInfo jhtype.Msginfo
-	var mWarn jhtype.Msgwarn
+	var mInfo Msginfo
+	var mWarn Msgwarn
 	if len(msg) > 75 {
 		msgType := msg[25:29]
 		if msgType == "INFO" {
@@ -227,9 +219,6 @@ func procLine(msg string) {
 			}
 
 			processRulesInfo(mInfo)
-			if usePlugin {
-				tryRulesFunc(mInfo, ptrGenVars)
-			}
 		}
 		if msgType == "WARN" {
 			mWarn.Msgdate = msg[0:10]
@@ -267,7 +256,6 @@ func catch_signals(c <-chan os.Signal) {
 		log.Println("Got signal:", s)
 		if s == syscall.SIGHUP {
 			read_config()
-			loadPlugin()
 		}
 		if s == syscall.SIGUSR1 {
 			msg_trace = true
@@ -302,8 +290,6 @@ func read_config() {
 	do_trace = viper.GetBool("do_trace")
 	genVar.Tbtoken = viper.GetString("tbtoken")
 	genVar.Chatid = int64(viper.GetInt("chatid"))
-	rulesPlugin = viper.GetString("plugin")
-	usePlugin = viper.GetBool("use_plugin")
 	genVar.Mqttbroker = viper.GetString("mqtt_broker")
 	genVar.Resturl = viper.GetString("rest_url")
 	genVar.Resttoken = viper.GetString("rest_token")
@@ -312,9 +298,6 @@ func read_config() {
 		log.Println("do_trace: ", do_trace)
 		log.Println("own_log; ", ownlog)
 		log.Println("pid_file: ", pidfile)
-		log.Println("rules plugin: ", rulesPlugin)
-		log.Println("use plugin: ", usePlugin)
-		log.Println("MQTT broker: ", genVar.Mqttbroker)
 		log.Println("Rest url: ", genVar.Resturl)
 
 		for i, v := range logs {
@@ -334,42 +317,6 @@ func tailLog(logFile string) {
 			msgLog(line.Text)
 			go procLine(line.Text)
 		}
-	}
-}
-
-func loadPlugin() {
-	if usePlugin {
-		var ti jhtype.Msginfo
-		usePlugin = false
-
-		// Load the plugin
-		plug, err := plugin.Open(rulesPlugin)
-		if err != nil {
-			traceLog("Error loading plugin:" + err.Error())
-			return
-		}
-
-		// Look up a symbol (an exported function or variable)
-		sym, err := plug.Lookup("TryRules")
-		if err != nil {
-			traceLog(err.Error())
-			return
-		}
-
-		// Assert that loaded symbol is a function and call it
-		tryRulesF, ok := sym.(func(mInfo jhtype.Msginfo, genVars *jhtype.Generalvars))
-		if !ok {
-			traceLog("Invalid symbol type")
-			return
-		}
-
-		traceLog("Plugin loaded")
-
-		tryRulesF(ti, ptrGenVars)
-
-		tryRulesFunc = tryRulesF
-
-		usePlugin = true
 	}
 }
 

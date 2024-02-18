@@ -3,13 +3,11 @@ package main
 import (
 	"fmt"
 	"time"
-
-	"github.com/joehil/jhtype"
 )
 
 func timeTrigger() {
 	for {
-		var mInfo jhtype.Msginfo
+		var mInfo Msginfo
 		time.Sleep(1 * time.Minute)
 		hours, minutes, seconds := time.Now().Clock()
 
@@ -25,8 +23,5 @@ func timeTrigger() {
 		mInfo.Msgobject = fmt.Sprintf("%02d:%02d", hours, minutes)
 
 		go processRulesInfo(mInfo)
-		if usePlugin {
-			go tryRulesFunc(mInfo, ptrGenVars)
-		}
 	}
 }

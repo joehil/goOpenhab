@@ -5,7 +5,6 @@ go 1.21.6
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
-	github.com/joehil/jhtype v0.5.4
 	github.com/lib/pq v1.10.9
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/nxadm/tail v1.4.11
