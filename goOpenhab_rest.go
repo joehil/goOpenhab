@@ -36,7 +36,7 @@ func restApiGet(rin chan Requestin, rout chan string) {
 			traceLog(fmt.Sprintf("restapi get error reading response: %v", err))
 		} else {
 			// Gib den Response Body aus
-			msgLog(fmt.Sprintf("restapi get received response: %v", string(body)))
+			traceLog(fmt.Sprintf("restapi get received response: %v", string(body)))
 			rout <- string(body)
 		}
 

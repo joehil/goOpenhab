@@ -22,6 +22,7 @@ func timeTrigger() {
 		mInfo.Msgevent = "chrono.event"
 		mInfo.Msgobject = fmt.Sprintf("%02d:%02d", hours, minutes)
 
+		msgLog(mInfo)
 		go processRulesInfo(mInfo)
 	}
 }

@@ -10,7 +10,7 @@ type Msginfo struct {
 	Msgevent    string
 	Msgobjtype  string
 	Msgobject   string
-	Msgoldstat  string
+	Msgoldstate string
 	Msgnewstate string
 }
 

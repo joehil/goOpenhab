@@ -26,9 +26,12 @@ var rlogs []*os.File
 var rpos []int64
 var loghash []uint32
 var timeOld time.Time
+var dumpfile string
+var dfile *os.File
 
 var genVar Generalvars
-var ptrGenVars *Generalvars
+
+//var ptrGenVars *Generalvars
 
 func main() {
 	// Set location of config
@@ -45,7 +48,7 @@ func main() {
 
 	genVar.Telegram = make(chan string)
 
-	ptrGenVars = &genVar
+	//	ptrGenVars = &genVar
 
 	go sendTelegram(genVar.Telegram)
 	traceLog("Telegram interface was initialized")
@@ -180,9 +183,9 @@ func traceLog(message string) {
 	}
 }
 
-func msgLog(message string) {
+func msgLog(minfo Msginfo) {
 	if msg_trace {
-		log.Println(message)
+		fmt.Fprintf(dfile, "%s;%s;%s;%s;%s\n", minfo.Msgevent, minfo.Msgobjtype, minfo.Msgobject, minfo.Msgoldstate, minfo.Msgnewstate)
 	}
 }
 
@@ -201,13 +204,13 @@ func procLine(msg string) {
 				if len(mes) == 7 {
 					mInfo.Msgobjtype = mes[0]
 					mInfo.Msgobject = mes[1]
-					mInfo.Msgoldstat = mes[4]
+					mInfo.Msgoldstate = mes[4]
 					mInfo.Msgnewstate = mes[6]
 				}
 				if len(mes) == 9 {
 					mInfo.Msgobjtype = mes[0]
 					mInfo.Msgobject = mes[1]
-					mInfo.Msgoldstat = strings.Join(mes[4:5], " ")
+					mInfo.Msgoldstate = strings.Join(mes[4:5], " ")
 					mInfo.Msgnewstate = strings.Join(mes[7:8], " ")
 				}
 			}
@@ -217,7 +220,7 @@ func procLine(msg string) {
 					mInfo.Msgnewstate = mes[2]
 				}
 			}
-
+			msgLog(mInfo)
 			processRulesInfo(mInfo)
 		}
 		if msgType == "WARN" {
@@ -258,12 +261,18 @@ func catch_signals(c <-chan os.Signal) {
 			read_config()
 		}
 		if s == syscall.SIGUSR1 {
+			var err error
 			msg_trace = true
 			log.Println("msg_trace switched on")
+			dfile, err = os.Create(dumpfile)
+			if err != nil {
+				traceLog(fmt.Sprintf("failed creating dumpfile: %s", err))
+			}
 		}
 		if s == syscall.SIGUSR2 {
 			msg_trace = false
 			log.Println("msg_trace switched off")
+			dfile.Close()
 		}
 		if s == syscall.SIGKILL {
 			log.Println("msg_trace switched off")
@@ -293,12 +302,14 @@ func read_config() {
 	genVar.Mqttbroker = viper.GetString("mqtt_broker")
 	genVar.Resturl = viper.GetString("rest_url")
 	genVar.Resttoken = viper.GetString("rest_token")
+	dumpfile = viper.GetString("dump_file")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)
 		log.Println("own_log; ", ownlog)
 		log.Println("pid_file: ", pidfile)
 		log.Println("Rest url: ", genVar.Resturl)
+		log.Println("Dumpfile: ", dumpfile)
 
 		for i, v := range logs {
 			log.Printf("Index: %d, Value: %v\n", i, v)
@@ -314,7 +325,6 @@ func tailLog(logFile string) {
 	for line := range t.Lines {
 		tNow := time.Now()
 		if tNow.Sub(timeOld) > time.Second {
-			msgLog(line.Text)
 			go procLine(line.Text)
 		}
 	}
