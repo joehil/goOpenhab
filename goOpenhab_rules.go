@@ -154,7 +154,12 @@ func calculateBatteryPrice(hour string) {
 	}
 	sort.Float64s(prices)
 	lPrices := len(prices)
-	price = fmt.Sprintf("%0.4f", prices[lPrices-hours])
+	lPrices -= hours
+	if lPrices >= 0 {
+		price = fmt.Sprintf("%0.4f", prices[lPrices])
+	} else {
+		price = "9.9999"
+	}
 	fmt.Println("Bat-Price: ", price, hours)
 	fmt.Println(prices)
 	genVar.Pers.Set("!BAT_PRICE", price, cache.DefaultExpiration)
