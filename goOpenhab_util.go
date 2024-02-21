@@ -21,3 +21,17 @@ func exec_cmd(command string, args ...string) {
 		log.Printf("Command finished with error: %v", err)
 	}
 }
+
+func getItemState(item string) string {
+	var answer string = ""
+	if x, found := genVar.Pers.Get(item); found {
+                answer = x.(string)
+        } else {
+                genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
+                answer = <-genVar.Getout
+                if answer != "" {
+                        genVar.Putin <- Requestin{Node: "items", Item: item, Value: "state", Data: answer}
+                }
+	}
+	return answer
+}

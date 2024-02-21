@@ -48,8 +48,6 @@ func main() {
 
 	genVar.Telegram = make(chan string)
 
-	//	ptrGenVars = &genVar
-
 	go sendTelegram(genVar.Telegram)
 	traceLog("Telegram interface was initialized")
 
@@ -150,7 +148,7 @@ func procRun() {
 	log.Println("Trace set to: ", do_trace)
 
 	// Do customized initialization
-	//proc_init()
+	rulesInit()
 
 	// Catch signals
 	signals := make(chan os.Signal, 1)
