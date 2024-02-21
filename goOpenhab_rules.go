@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/patrickmn/go-cache"
 )
@@ -49,19 +50,41 @@ func chronoEvents(mInfo Msginfo) {
 	// this rule runs every minute
 	var batPrice string
 	ap := getItemState("curr_price")
-	fmt.Println("ap: ", ap)
 	soc := getItemState("Solarakku_SOC")
-	fmt.Println("SOC found: ", soc)
-	if x, found := genVar.Pers.Get("!BAT_PRICE"); found {
+	stromGarage := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
+	stromBalkon := getItemState("Schalter_Balkon_Power")
+	as := getItemState("Tibber_Aktueller_Verbrauch")
+	fmt.Printf("Current price: %s, SOC: %s, Strom Garage: %s, Strom Balkon %s, Aktueller Verbrauch %s\n", ap, soc, stromGarage, stromBalkon, as)
+	flStromGarage, _ := strconv.ParseFloat(stromGarage, 64)
+	flStromBalkon, _ := strconv.ParseFloat(stromBalkon, 64)
+	//	flAs, _ := strconv.ParseFloat(as, 64)
+	var flStrom float64 = flStromGarage + flStromBalkon
+	x, found := genVar.Pers.Get("!BAT_PRICE")
+	if found && flStrom < float64(50) {
 		batPrice = x.(string)
 		fmt.Println("BAT_PRICE: ", batPrice)
-		if soc > "35.00" && ap > batPrice {
+		if soc > "35.00" && ap >= batPrice {
+			// Soyosource on
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set/state", Message: "on"}
 			fmt.Println("Soyosource switched on")
 		} else {
+			// Soyosource off
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set/state", Message: "off"}
 			fmt.Println("Soyosource switched off")
 		}
+	} else {
+		// Soyosource off
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set/state", Message: "off"}
+		fmt.Println("Soyosource switched off")
+	}
+	if flStrom > float64(100) {
+		// Loader-48 on
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set/state", Message: "on"}
+		fmt.Println("Laden_48 switched on")
+	} else {
+		// Loader_48 off
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set/state", Message: "off"}
+		fmt.Println("Laden_48 switched off")
 	}
 
 	// this rule runs at minutes 3, 6 and 9
@@ -96,7 +119,9 @@ func chronoEvents(mInfo Msginfo) {
 // rules that are called when goOpenhab initializes
 
 func rulesInit() {
-	calculateBatteryPrice("10")
+	now := time.Now()
+	hour := now.Hour()
+	calculateBatteryPrice(fmt.Sprintf("%02d", hour))
 }
 
 // special funtions as a support to make relatively short rules
@@ -114,13 +139,17 @@ func calculateBatteryPrice(hour string) {
 	for i := intH; i < 24; i++ {
 		price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
 		flPrice, _ = strconv.ParseFloat(price, 64)
-		prices = append(prices, flPrice)
+		if flPrice > float64(0.21) {
+			prices = append(prices, flPrice)
+		}
 	}
 	if hour > "15" {
 		for i := 0; i < 10; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
-			prices = append(prices, flPrice)
+			if flPrice > float64(0.21) {
+				prices = append(prices, flPrice)
+			}
 		}
 	}
 	sort.Float64s(prices)
