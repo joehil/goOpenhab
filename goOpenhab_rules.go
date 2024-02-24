@@ -16,6 +16,35 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	// Process current power
+	if mInfo.Msgobject == "Tibber_Aktueller_Verbrauch" {
+		sEinAus := getItemState("Soyosource_EinAus")
+		if sEinAus == "ON" {
+			var flInverter float64
+			var inverter int
+			strInverter := getItemState("Soyosource_Power")
+			inverter, _ = strconv.Atoi(strInverter)
+			flOld, _ := strconv.ParseFloat(mInfo.Msgoldstate, 64)
+			flNew, _ := strconv.ParseFloat(mInfo.Msgnewstate, 64)
+			flInverter = (flNew - flOld) * float64(0.7)
+			inverter += int(flInverter)
+			if inverter < 0 {
+				inverter = 0
+			}
+			if inverter > 600 {
+				inverter = 600
+			}
+			genVar.Pers.Set("Soyosource_Power", fmt.Sprintf("%d", inverter), cache.DefaultExpiration)
+			fmt.Printf("Inverter: %d\n", inverter)
+		} else {
+			lEinAus := getItemState("Laden_48_EinAus")
+			if lEinAus == "ON" {
+				fmt.Println("Digipot setzen")
+			}
+		}
+		return
+	}
+
 	// store every Tibber variable in cache
 	if len(mInfo.Msgobject) >= 8 {
 		if mInfo.Msgobject[0:8] == "Tibber_t" || mInfo.Msgobject[0:8] == "Tibber_m" || mInfo.Msgobject[0:8] == "Tibber_n" {
@@ -28,6 +57,20 @@ func processRulesInfo(mInfo Msginfo) {
 	if mInfo.Msgobject == "Solarakku_SOC" {
 		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
 		fmt.Println("SOC stored: ", mInfo.Msgnewstate)
+		return
+	}
+
+	// store the state of soyosource switch in cache
+	if mInfo.Msgobject == "Soyosource_EinAus" {
+		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
+		fmt.Println("Soyosource_EinAus stored: ", mInfo.Msgnewstate)
+		return
+	}
+
+	// store the state of load_48 switch in cache
+	if mInfo.Msgobject == "Laden_48_EinAus" {
+		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
+		fmt.Println("Laden_48_EinAus stored: ", mInfo.Msgnewstate)
 		return
 	}
 
@@ -61,6 +104,7 @@ func chronoEvents(mInfo Msginfo) {
 	flStromGarage, _ := strconv.ParseFloat(stromGarage, 64)
 	flStromBalkon, _ := strconv.ParseFloat(stromBalkon, 64)
 	flAs, _ := strconv.ParseFloat(as, 64)
+	flAp, _ := strconv.ParseFloat(ap, 64)
 	var flStrom float64 = flStromGarage + flStromBalkon
 	x, found := genVar.Pers.Get("!BAT_PRICE")
 	if found && flStrom < float64(50) && ladenSwitch == "OFF" {
@@ -71,11 +115,10 @@ func chronoEvents(mInfo Msginfo) {
 		} else {
 			cmd = "off"
 		}
-	} else {
-		cmd = "off"
 	}
+
 	if (flStrom > float64(100) && ladenSwitch == "OFF" && flAs < float64(-50)) || (ladenSwitch == "ON" && flAs < float64(50)) ||
-		flAs < 0.19 {
+		flAp < float64(0.19) {
 		cmd = "load"
 	}
 	fmt.Println("cmd: ", cmd)
@@ -116,6 +159,12 @@ func rulesInit() {
 	now := time.Now()
 	hour := now.Hour()
 	calculateBatteryPrice(fmt.Sprintf("%02d", hour))
+	sEinAus := getItemState("Soyosource_EinAus")
+	genVar.Pers.Set("Soyosource_EinAus", sEinAus, cache.DefaultExpiration)
+	fmt.Println("Soyosource_EinAus stored: ", sEinAus)
+	lEinAus := getItemState("Laden_48_EinAus")
+	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.DefaultExpiration)
+	fmt.Println("Laden_48_EinAus stored: ", lEinAus)
 }
 
 // special funtions as a support to make relatively short rules
