@@ -24,9 +24,8 @@ func processRulesInfo(mInfo Msginfo) {
 			var inverter int
 			strInverter := getItemState("Soyosource_Power")
 			inverter, _ = strconv.Atoi(strInverter)
-			flOld, _ := strconv.ParseFloat(mInfo.Msgoldstate, 64)
 			flNew, _ := strconv.ParseFloat(mInfo.Msgnewstate, 64)
-			flInverter = (flNew - flOld) * float64(0.7)
+			flInverter = flNew * float64(0.5)
 			inverter += int(flInverter)
 			if inverter < 0 {
 				inverter = 0
@@ -36,6 +35,7 @@ func processRulesInfo(mInfo Msginfo) {
 			}
 			genVar.Pers.Set("Soyosource_Power", fmt.Sprintf("%d", inverter), cache.DefaultExpiration)
 			fmt.Printf("Inverter: %d\n", inverter)
+			genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: fmt.Sprintf("%d", inverter)}
 		} else {
 			lEinAus := getItemState("Laden_48_EinAus")
 			if lEinAus == "ON" {
@@ -64,6 +64,9 @@ func processRulesInfo(mInfo Msginfo) {
 	if mInfo.Msgobject == "Soyosource_EinAus" {
 		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
 		fmt.Println("Soyosource_EinAus stored: ", mInfo.Msgnewstate)
+		if mInfo.Msgnewstate == "OFF" {
+			genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: "0"}
+		}
 		return
 	}
 
@@ -107,17 +110,18 @@ func chronoEvents(mInfo Msginfo) {
 	flAp, _ := strconv.ParseFloat(ap, 64)
 	var flStrom float64 = flStromGarage + flStromBalkon
 	x, found := genVar.Pers.Get("!BAT_PRICE")
-	if found && flStrom < float64(50) && ladenSwitch == "OFF" {
+	if found && flStrom < float64(100) && ladenSwitch == "OFF" {
 		batPrice = x.(string)
 		fmt.Println("BAT_PRICE: ", batPrice)
-		if soc > "45.00" && ap >= batPrice {
+		flBatprice, _ := strconv.ParseFloat(batPrice, 64)
+		if soc > "45.00" && flAp >= flBatprice {
 			cmd = "unload"
 		} else {
 			cmd = "off"
 		}
 	}
 
-	if (flStrom > float64(100) && ladenSwitch == "OFF" && flAs < float64(-50)) || (ladenSwitch == "ON" && flAs < float64(50)) ||
+	if (flStrom > float64(120) && ladenSwitch == "OFF" && flAs < float64(-50)) || (ladenSwitch == "ON" && flAs < float64(50)) ||
 		flAp < float64(0.19) {
 		cmd = "load"
 	}
@@ -174,19 +178,36 @@ func calculateBatteryPrice(hour string) {
 	var prices []float64
 	var price string
 	var flPrice float64
+	var hours int
 	soc := getItemState("Solarakku_SOC")
 	flSoc, _ = strconv.ParseFloat(soc, 64)
 	flSoc -= 50
-	hours := int(float64((flSoc / 7)))
+	if flSoc < float64(0) {
+		hours = 0
+	} else {
+		hours = int(float64((flSoc / 7)))
+		hours += 1
+	}
 	intH, _ := strconv.Atoi(hour)
-	for i := intH; i < 24; i++ {
-		price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
-		flPrice, _ = strconv.ParseFloat(price, 64)
-		if flPrice > float64(0.21) {
-			prices = append(prices, flPrice)
+	if hour > "11" {
+		for i := intH; i < 24; i++ {
+			price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > float64(0.21) {
+				prices = append(prices, flPrice)
+			}
 		}
 	}
-	if hour > "15" {
+        if hour <= "11" {
+                for i := intH; i <= 11; i++ {
+                        price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > float64(0.21) {
+                                prices = append(prices, flPrice)
+                        }
+                }
+        }
+	if hour > "20" {
 		for i := 0; i < 10; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
@@ -201,7 +222,7 @@ func calculateBatteryPrice(hour string) {
 	if lPrices < 0 {
 		lPrices = 0
 	}
-	if len(prices) > 0 {
+	if len(prices) > 0 && lPrices < len(prices) {
 		price = fmt.Sprintf("%0.4f", prices[lPrices])
 	} else {
 		price = "9.9999"
