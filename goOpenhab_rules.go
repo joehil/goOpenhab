@@ -18,13 +18,13 @@ func processRulesInfo(mInfo Msginfo) {
 
 	// Process current power
 	if mInfo.Msgobject == "Tibber_Aktueller_Verbrauch" {
+		var flInverter float64
+		flNew, _ := strconv.ParseFloat(mInfo.Msgnewstate, 64)
 		sEinAus := getItemState("Soyosource_EinAus")
 		if sEinAus == "ON" {
-			var flInverter float64
 			var inverter int
 			strInverter := getItemState("Soyosource_Power")
 			inverter, _ = strconv.Atoi(strInverter)
-			flNew, _ := strconv.ParseFloat(mInfo.Msgnewstate, 64)
 			flInverter = flNew * float64(0.5)
 			inverter += int(flInverter)
 			if inverter < 0 {
@@ -39,7 +39,22 @@ func processRulesInfo(mInfo Msginfo) {
 		} else {
 			lEinAus := getItemState("Laden_48_EinAus")
 			if lEinAus == "ON" {
-				fmt.Println("Digipot setzen")
+				var poti int
+				digiPot := getItemState("Digipot_Poti")
+				intDigiPot, _ := strconv.Atoi(digiPot)
+				var flPoti float64 = flNew * float64(-0.255)
+				poti = int(flPoti) + intDigiPot
+				if poti > 255 {
+					poti = 255
+				}
+				if poti < 0 {
+					poti = 0
+				}
+				if intDigiPot != poti {
+					fmt.Println("Digipot setzen")
+					genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
+					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.DefaultExpiration)
+				}
 			}
 		}
 		return
@@ -198,15 +213,15 @@ func calculateBatteryPrice(hour string) {
 			}
 		}
 	}
-        if hour <= "11" {
-                for i := intH; i <= 11; i++ {
-                        price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > float64(0.21) {
-                                prices = append(prices, flPrice)
-                        }
-                }
-        }
+	if hour <= "11" {
+		for i := intH; i <= 11; i++ {
+			price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > float64(0.21) {
+				prices = append(prices, flPrice)
+			}
+		}
+	}
 	if hour > "20" {
 		for i := 0; i < 10; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d", i))
