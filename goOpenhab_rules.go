@@ -143,13 +143,14 @@ func chronoEvents(mInfo Msginfo) {
 	fmt.Println("cmd: ", cmd)
 	battery(cmd)
 
-	// this rule runs at minutes 3, 6 and 9
-	if strings.ContainsAny(mInfo.Msgobject[4:5], "369") {
-		item := "Tibber_total" + mInfo.Msgobject[0:2]
-		fmt.Println(item)
-		if x, found := genVar.Pers.Get(item); found {
-			foo := x.(string)
-			fmt.Println(foo)
+	// this rule runs at minutes 1 and 6
+	if strings.ContainsAny(mInfo.Msgobject[4:5], "16") {
+		diff := wlanTraffic()
+		if diff == 0 {
+			fmt.Println("Network will be restarted")
+			restartNetwork()
+		} else {
+			fmt.Println("Network is running alright")
 		}
 		return
 	}
