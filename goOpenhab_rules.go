@@ -152,7 +152,6 @@ func chronoEvents(mInfo Msginfo) {
 		} else {
 			fmt.Println("Network is running alright")
 		}
-		return
 	}
 
 	// this rule runs at the first minute of each hour
