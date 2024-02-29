@@ -155,7 +155,7 @@ func chronoEvents(mInfo Msginfo) {
 		return
 	}
 
-	// this rules runs at the first minute of each hour
+	// this rule runs at the first minute of each hour
 	if mInfo.Msgobject[3:5] == "00" {
 		item := "Tibber_total" + mInfo.Msgobject[0:2]
 		if mInfo.Msgobject[0:2] == "00" {
@@ -169,6 +169,19 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Putin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
 		}
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
+		return
+	}
+
+	// this rule runs at the second minute of each hour
+	if mInfo.Msgobject[3:5] == "01" {
+		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
+		if doZoe {
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"ON\"}"}
+			fmt.Println("ZOE lädt")
+		} else {
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"OFF\"}"}
+			fmt.Println("ZOE lädt nicht")
+		}
 		return
 	}
 }
@@ -252,31 +265,45 @@ func battery(cmd string) {
 	switch cmd {
 	case "off":
 		// Soyosource off
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set/state", Message: "off"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
 		fmt.Println("Soyosource switched off")
 		// Loader-48 off
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set/state", Message: "off"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
 		fmt.Println("Laden_48 switched off")
 	case "load":
 		// Soyosource off
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set/state", Message: "off"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
 		fmt.Println("Soyosource switched off")
 		// Loader-48 on
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set/state", Message: "on"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"ON\"}"}
 		fmt.Println("Laden_48 switched on")
 	case "unload":
 		// Loader-48 off
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set/state", Message: "off"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
 		fmt.Println("Laden_48 switched off")
 		// Soyosource on
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set/state", Message: "on"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"ON\"}"}
 		fmt.Println("Soyosource switched on")
 	default:
 		// Soyosource off
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set/state", Message: "off"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
 		fmt.Println("Soyosource switched off")
 		// Loader-48 off
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set/state", Message: "off"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
 		fmt.Println("Laden_48 switched off")
 	}
+}
+
+func onOffByPrice(zone string, obj string) bool {
+	var flPrice float64 = 0
+	var flCurr float64 = 0
+	var hour string = obj[0:2]
+	if !(hour >= "21" || hour <= "06") && zone[0:1] == "n" {
+		return false
+	}
+	price := getItemState(fmt.Sprintf("Tibber_%s", zone))
+	flPrice, _ = strconv.ParseFloat(price, 64)
+	curr_price := getItemState("curr_price")
+	flCurr, _ = strconv.ParseFloat(curr_price, 64)
+	return flCurr <= flPrice
 }

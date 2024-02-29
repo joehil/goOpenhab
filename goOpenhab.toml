@@ -1,9 +1,18 @@
-own_log = "<full path of own log file>"
-pid_file = "<full path of pid file>"
-do_trace = false
+own_log = "/tmp/goOpenhab.log"
+pid_file = "/tmp/goOpenhab.pid"
+do_trace = true
 
 logs = [
-  "<full path of log1>",
-  "<full path of log2>"
+  "<path to openhab events.log>",
+  "<path to openhab openhab.log>"
 ]
 
+tbtoken = "<tbtoken>"
+chatid  = <chatid>
+
+dump_file = "/tmp/goOpenhab.dump"
+
+mqtt_broker = "tcp://<ip of mqtt broker:1883"
+
+rest_url = "http://127.0.0.1:8080/rest"
+rest_token = "<openhab token>"
