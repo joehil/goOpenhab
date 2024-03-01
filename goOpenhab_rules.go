@@ -140,6 +140,14 @@ func chronoEvents(mInfo Msginfo) {
 		flAp < float64(0.19) {
 		cmd = "load"
 	}
+	if cmd == "off" {
+		x, found := genVar.Pers.Get("!BATTERYLOAD")
+		if found {
+			if x == "1" {
+				cmd = "load"
+			}
+		}
+	}
 	fmt.Println("cmd: ", cmd)
 	battery(cmd)
 
@@ -151,6 +159,23 @@ func chronoEvents(mInfo Msginfo) {
 			restartNetwork()
 		} else {
 			fmt.Println("Network is running alright")
+		}
+	}
+
+	// this rule runs at minute 2
+	if strings.ContainsAny(mInfo.Msgobject[4:5], "2") {
+		//              soc := getItemState("Solarakku_SOC")
+		mt := getItemState("Tibber_mintotal")
+		//		ap := getItemState("curr_price")
+		flMt, _ := strconv.ParseFloat(mt, 64)
+		flCp, _ := strconv.ParseFloat(ap, 64)
+		if soc < "44.00" && flMt >= flCp {
+			genVar.Pers.Set("!BATTERYLOAD", "1", cache.DefaultExpiration)
+			fmt.Println("Battery Load on")
+		}
+		if soc > "55.00" || flMt < flCp {
+			genVar.Pers.Set("!BATTERYLOAD", "0", cache.DefaultExpiration)
+			fmt.Println("Battery Load off")
 		}
 	}
 
@@ -176,10 +201,21 @@ func chronoEvents(mInfo Msginfo) {
 		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
 		if doZoe {
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"ON\"}"}
-			fmt.Println("ZOE lädt")
+			fmt.Println("ZOE loading started")
 		} else {
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"OFF\"}"}
-			fmt.Println("ZOE lädt nicht")
+			fmt.Println("ZOE loading ended")
+		}
+		mt := getItemState("Tibber_mintotal")
+		//              ap := getItemState("curr_price")
+		flMt, _ := strconv.ParseFloat(mt, 64)
+		flCp, _ := strconv.ParseFloat(ap, 64)
+		if flMt >= flCp {
+			genVar.Putin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "ON"}
+			fmt.Println("Laden_klein on")
+		} else {
+			genVar.Putin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "OFF"}
+			fmt.Println("Laden_klein off")
 		}
 		return
 	}
