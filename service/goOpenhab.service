@@ -1,0 +1,12 @@
+[Unit]
+Description=Independant rules engine for Openhab
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/path to goOpenhab/goOpenhab run
+User=<user>
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

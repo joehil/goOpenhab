@@ -35,7 +35,8 @@ func processRulesInfo(mInfo Msginfo) {
 			}
 			genVar.Pers.Set("Soyosource_Power", fmt.Sprintf("%d", inverter), cache.DefaultExpiration)
 			fmt.Printf("Inverter: %d\n", inverter)
-			genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: fmt.Sprintf("%d", inverter)}
+			// genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: fmt.Sprintf("%d", inverter)}
+			genVar.Putin <- Requestin{Node: "items", Item: "Soyosource_Power", Value: "state", Data: fmt.Sprintf("%d", inverter)}
 		} else {
 			lEinAus := getItemState("Laden_48_EinAus")
 			if lEinAus == "ON" {
@@ -44,6 +45,14 @@ func processRulesInfo(mInfo Msginfo) {
 				intDigiPot, _ := strconv.Atoi(digiPot)
 				var flPoti float64 = flNew * float64(-0.255)
 				poti = int(flPoti) + intDigiPot
+				x, found := genVar.Pers.Get("!BATTERYLOAD")
+				if found {
+					if x == "1" {
+						if poti < 127 {
+							poti = 127
+						}
+					}
+				}
 				if poti > 255 {
 					poti = 255
 				}
@@ -51,8 +60,9 @@ func processRulesInfo(mInfo Msginfo) {
 					poti = 0
 				}
 				if intDigiPot != poti {
-					fmt.Println("Digipot setzen")
-					genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
+					fmt.Printf("Digipot setzen auf: %d\n", poti)
+					// genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
+					genVar.Putin <- Requestin{Node: "items", Item: "Digipot_Poti", Value: "state", Data: fmt.Sprintf("%d", poti)}
 					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.DefaultExpiration)
 				}
 			}
