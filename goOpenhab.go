@@ -64,8 +64,8 @@ func main() {
 
 	genVar.Putin = make(chan Requestin)
 
-	go restApiPut(genVar.Putin)
-	traceLog("restapi put interface was initialized")
+	go restApiPost(genVar.Putin)
+	traceLog("restapi post interface was initialized")
 
 	// Get commandline args
 	if len(os.Args) > 1 {
@@ -201,20 +201,20 @@ func procLine(msg string) {
 			if mInfo.Msgevent == "openhab.event.ItemStateChangedEvent" {
 				if len(mes) == 7 {
 					mInfo.Msgobjtype = mes[0]
-					mInfo.Msgobject = strings.Trim(mes[1],"' ")
+					mInfo.Msgobject = strings.Trim(mes[1], "' ")
 					mInfo.Msgoldstate = mes[4]
 					mInfo.Msgnewstate = mes[6]
 				}
 				if len(mes) == 9 {
 					mInfo.Msgobjtype = mes[0]
-					mInfo.Msgobject = strings.Trim(mes[1],"' ")
+					mInfo.Msgobject = strings.Trim(mes[1], "' ")
 					mInfo.Msgoldstate = strings.Join(mes[4:5], " ")
 					mInfo.Msgnewstate = strings.Join(mes[7:8], " ")
 				}
 			}
 			if mInfo.Msgevent == "openhab.event.ChannelTriggeredEvent" {
 				if len(mes) >= 3 {
-					mInfo.Msgobject = strings.Trim(mes[0],"' ")
+					mInfo.Msgobject = strings.Trim(mes[0], "' ")
 					mInfo.Msgnewstate = mes[2]
 				}
 			}

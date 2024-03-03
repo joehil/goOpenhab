@@ -44,16 +44,16 @@ func restApiGet(rin chan Requestin, rout chan string) {
 	}
 }
 
-func restApiPut(rin chan Requestin) {
+func restApiPost(rin chan Requestin) {
 	url := genVar.Resturl     // Die URL der API, die du aufrufen möchtest
 	token := genVar.Resttoken // Der Bearer Token für die Authentifizierung
 
 	for {
 		request := <-rin
-		requrl := url + "/" + request.Node + "/" + request.Item + "/" + request.Value
+		requrl := url + "/" + request.Node + "/" + request.Item
 		data := request.Data
 		// Erstelle einen neuen Request
-		req, err := http.NewRequest("PUT", requrl, strings.NewReader(data))
+		req, err := http.NewRequest("POST", requrl, strings.NewReader(data))
 		if err != nil {
 			traceLog(fmt.Sprintf("restapi put creation error: %v", err))
 		}
@@ -66,12 +66,12 @@ func restApiPut(rin chan Requestin) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
-			traceLog(fmt.Sprintf("restapi put processing error: %v", err))
+			traceLog(fmt.Sprintf("restapi post processing error: %v", err))
 		}
 
 		// Prüfe den Statuscode des Response, um sicherzustellen, dass der Request erfolgreich war
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != 202 {
-			traceLog(fmt.Sprintf("restapi put statuscode: %v", resp.StatusCode))
+			traceLog(fmt.Sprintf("restapi post statuscode: %v", resp.StatusCode))
 		}
 		resp.Body.Close()
 	}
