@@ -23,7 +23,7 @@ func processRulesInfo(mInfo Msginfo) {
 		sEinAus := getItemState("Soyosource_EinAus")
 		if sEinAus == "ON" {
 			var inverter int
-			strInverter := getItemState("Soyosource_Power")
+			strInverter := getItemState("Soyosource_Power_Value")
 			inverter, _ = strconv.Atoi(strInverter)
 			flInverter = flNew * float64(0.5)
 			inverter += int(flInverter)
@@ -33,10 +33,10 @@ func processRulesInfo(mInfo Msginfo) {
 			if inverter > 600 {
 				inverter = 600
 			}
-			genVar.Pers.Set("Soyosource_Power", fmt.Sprintf("%d", inverter), cache.DefaultExpiration)
+			genVar.Pers.Set("Soyosource_Power_Value", fmt.Sprintf("%d", inverter), cache.DefaultExpiration)
 			fmt.Printf("Inverter: %d\n", inverter)
 			// genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: fmt.Sprintf("%d", inverter)}
-			genVar.Putin <- Requestin{Node: "items", Item: "Soyosource_Power", Value: "state", Data: fmt.Sprintf("%d", inverter)}
+			genVar.Putin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Value: "state", Data: fmt.Sprintf("%d", inverter)}
 		} else {
 			lEinAus := getItemState("Laden_48_EinAus")
 			if lEinAus == "ON" {
