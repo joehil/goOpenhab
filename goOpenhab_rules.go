@@ -159,7 +159,7 @@ func chronoEvents(mInfo Msginfo) {
 			}
 		}
 	}
-	debugLog(5, fmt.Sprintln("cmd: ", cmd))
+	debugLog(5, fmt.Sprint("cmd: ", cmd))
 	battery(cmd)
 
 	// this rule runs at minutes 1 and 6
