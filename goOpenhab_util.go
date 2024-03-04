@@ -35,7 +35,7 @@ func traceLog(message string) {
 }
 
 func debugLog(sev int, message string) {
-	if sev >= logseverity {
+	if logseverity >= sev {
 		log.Println(message)
 	}
 }
