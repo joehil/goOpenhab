@@ -1,6 +1,7 @@
 own_log = "/tmp/goOpenhab.log"
 pid_file = "/tmp/goOpenhab.pid"
 do_trace = true
+log_severity = 3
 
 logs = [
   "<path to openhab events.log>",

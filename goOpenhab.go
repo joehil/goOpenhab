@@ -19,6 +19,7 @@ import (
 
 var do_trace bool = false
 var msg_trace bool = false
+var logseverity int
 var pidfile string
 var ownlog string
 var logs []string
@@ -175,18 +176,6 @@ func procRun() {
 	}
 }
 
-func traceLog(message string) {
-	if do_trace {
-		log.Println(message)
-	}
-}
-
-func msgLog(minfo Msginfo) {
-	if msg_trace {
-		fmt.Fprintf(dfile, "%s;%s;%s;%s;%s\n", minfo.Msgevent, minfo.Msgobjtype, minfo.Msgobject, minfo.Msgoldstate, minfo.Msgnewstate)
-	}
-}
-
 func procLine(msg string) {
 	var mInfo Msginfo
 	var mWarn Msgwarn
@@ -301,6 +290,7 @@ func read_config() {
 	genVar.Resturl = viper.GetString("rest_url")
 	genVar.Resttoken = viper.GetString("rest_token")
 	dumpfile = viper.GetString("dump_file")
+	logseverity = viper.GetInt("log_severity")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)
@@ -308,6 +298,7 @@ func read_config() {
 		log.Println("pid_file: ", pidfile)
 		log.Println("Rest url: ", genVar.Resturl)
 		log.Println("Dumpfile: ", dumpfile)
+		log.Println("Logseverity: ", logseverity)
 
 		for i, v := range logs {
 			log.Printf("Index: %d, Value: %v\n", i, v)

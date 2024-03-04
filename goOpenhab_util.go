@@ -28,6 +28,24 @@ func exec_cmd(command string, args ...string) {
 	}
 }
 
+func traceLog(message string) {
+	if do_trace {
+		log.Println(message)
+	}
+}
+
+func debugLog(sev int, message string) {
+	if sev >= logseverity {
+		log.Println(message)
+	}
+}
+
+func msgLog(minfo Msginfo) {
+	if msg_trace {
+		fmt.Fprintf(dfile, "%s;%s;%s;%s;%s\n", minfo.Msgevent, minfo.Msgobjtype, minfo.Msgobject, minfo.Msgoldstate, minfo.Msgnewstate)
+	}
+}
+
 func getItemState(item string) string {
 	var answer string = ""
 	if x, found := genVar.Pers.Get(item); found {
