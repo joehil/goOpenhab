@@ -36,7 +36,7 @@ func getItemState(item string) string {
 		genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
 		answer = <-genVar.Getout
 		if answer != "" {
-			genVar.Putin <- Requestin{Node: "items", Item: item, Value: "state", Data: answer}
+			genVar.Postin <- Requestin{Node: "items", Item: item, Value: "state", Data: answer}
 		}
 	}
 	return answer

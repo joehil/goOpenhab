@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -34,9 +35,9 @@ func processRulesInfo(mInfo Msginfo) {
 				inverter = 600
 			}
 			genVar.Pers.Set("Soyosource_Power_Value", fmt.Sprintf("%d", inverter), cache.DefaultExpiration)
-			fmt.Printf("Inverter: %d\n", inverter)
+			log.Printf("Inverter: %d\n", inverter)
 			// genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: fmt.Sprintf("%d", inverter)}
-			genVar.Putin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Value: "state", Data: fmt.Sprintf("%d", inverter)}
+			genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Value: "state", Data: fmt.Sprintf("%d", inverter)}
 		} else {
 			lEinAus := getItemState("Laden_48_EinAus")
 			if lEinAus == "ON" {
@@ -60,9 +61,9 @@ func processRulesInfo(mInfo Msginfo) {
 					poti = 0
 				}
 				if intDigiPot != poti {
-					fmt.Printf("Digipot setzen auf: %d\n", poti)
+					log.Printf("Digipot setzen auf: %d\n", poti)
 					// genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
-					genVar.Putin <- Requestin{Node: "items", Item: "Digipot_Poti", Value: "state", Data: fmt.Sprintf("%d", poti)}
+					genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Value: "state", Data: fmt.Sprintf("%d", poti)}
 					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.DefaultExpiration)
 				}
 			}
@@ -73,7 +74,7 @@ func processRulesInfo(mInfo Msginfo) {
 	// store every Tibber variable in cache
 	if len(mInfo.Msgobject) >= 8 {
 		if mInfo.Msgobject[0:8] == "Tibber_t" || mInfo.Msgobject[0:8] == "Tibber_m" || mInfo.Msgobject[0:8] == "Tibber_n" {
-			fmt.Println(mInfo.Msgobject, mInfo.Msgnewstate)
+			log.Println(mInfo.Msgobject, mInfo.Msgnewstate)
 			genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
 		}
 	}
@@ -81,14 +82,14 @@ func processRulesInfo(mInfo Msginfo) {
 	// store the SOC of our battery in cache
 	if mInfo.Msgobject == "Solarakku_SOC" {
 		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
-		fmt.Println("SOC stored: ", mInfo.Msgnewstate)
+		log.Println("SOC stored: ", mInfo.Msgnewstate)
 		return
 	}
 
 	// store the state of soyosource switch in cache
 	if mInfo.Msgobject == "Soyosource_EinAus" {
 		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
-		fmt.Println("Soyosource_EinAus stored: ", mInfo.Msgnewstate)
+		log.Println("Soyosource_EinAus stored: ", mInfo.Msgnewstate)
 		if mInfo.Msgnewstate == "OFF" {
 			genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: "0"}
 		}
@@ -98,7 +99,7 @@ func processRulesInfo(mInfo Msginfo) {
 	// store the state of load_48 switch in cache
 	if mInfo.Msgobject == "Laden_48_EinAus" {
 		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
-		fmt.Println("Laden_48_EinAus stored: ", mInfo.Msgnewstate)
+		log.Println("Laden_48_EinAus stored: ", mInfo.Msgnewstate)
 		return
 	}
 
@@ -128,7 +129,7 @@ func chronoEvents(mInfo Msginfo) {
 	genVar.Getin <- Requestin{Node: "items", Item: "Laden_48_EinAus", Value: "state"}
 	ladenSwitch := <-genVar.Getout
 	as := getItemState("Tibber_Aktueller_Verbrauch")
-	fmt.Printf("%s Current price: %s, SOC: %s, Strom Garage: %s, Strom Balkon %s, Aktueller Verbrauch %s, Laden-Ein/Aus: %s\n", mInfo.Msgobject, ap, soc, stromGarage, stromBalkon, as, ladenSwitch)
+	log.Printf("%s Current price: %s, SOC: %s, Strom Garage: %s, Strom Balkon %s, Aktueller Verbrauch %s, Laden-Ein/Aus: %s\n", mInfo.Msgobject, ap, soc, stromGarage, stromBalkon, as, ladenSwitch)
 	flStromGarage, _ := strconv.ParseFloat(stromGarage, 64)
 	flStromBalkon, _ := strconv.ParseFloat(stromBalkon, 64)
 	flAs, _ := strconv.ParseFloat(as, 64)
@@ -137,7 +138,7 @@ func chronoEvents(mInfo Msginfo) {
 	x, found := genVar.Pers.Get("!BAT_PRICE")
 	if found && flStrom < float64(100) && ladenSwitch == "OFF" {
 		batPrice = x.(string)
-		fmt.Println("BAT_PRICE: ", batPrice)
+		log.Println("BAT_PRICE: ", batPrice)
 		flBatprice, _ := strconv.ParseFloat(batPrice, 64)
 		if soc > "45.00" && flAp >= flBatprice {
 			cmd = "unload"
@@ -158,17 +159,17 @@ func chronoEvents(mInfo Msginfo) {
 			}
 		}
 	}
-	fmt.Println("cmd: ", cmd)
+	log.Println("cmd: ", cmd)
 	battery(cmd)
 
 	// this rule runs at minutes 1 and 6
 	if strings.ContainsAny(mInfo.Msgobject[4:5], "16") {
 		diff := wlanTraffic()
 		if diff == 0 {
-			fmt.Println("Network will be restarted")
+			log.Println("Network will be restarted")
 			restartNetwork()
 		} else {
-			fmt.Println("Network is running alright")
+			log.Println("Network is running alright")
 		}
 	}
 
@@ -181,11 +182,11 @@ func chronoEvents(mInfo Msginfo) {
 		flCp, _ := strconv.ParseFloat(ap, 64)
 		if soc < "44.00" && flMt >= flCp {
 			genVar.Pers.Set("!BATTERYLOAD", "1", cache.DefaultExpiration)
-			fmt.Println("Battery Load on")
+			log.Println("Battery Load on")
 		}
 		if soc > "55.00" || flMt < flCp {
 			genVar.Pers.Set("!BATTERYLOAD", "0", cache.DefaultExpiration)
-			fmt.Println("Battery Load off")
+			log.Println("Battery Load off")
 		}
 	}
 
@@ -195,12 +196,12 @@ func chronoEvents(mInfo Msginfo) {
 		if mInfo.Msgobject[0:2] == "00" {
 			item = "Tibber_tomorrow00"
 		}
-		fmt.Println(item)
+		log.Println(item)
 		genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
 		answer := <-genVar.Getout
-		fmt.Println(answer)
+		log.Println(answer)
 		if answer != "" {
-			genVar.Putin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
+			genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
 		}
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
 		return
@@ -211,21 +212,21 @@ func chronoEvents(mInfo Msginfo) {
 		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
 		if doZoe {
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"ON\"}"}
-			fmt.Println("ZOE loading started")
+			log.Println("ZOE loading started")
 		} else {
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"OFF\"}"}
-			fmt.Println("ZOE loading ended")
+			log.Println("ZOE loading ended")
 		}
 		mt := getItemState("Tibber_mintotal")
 		//              ap := getItemState("curr_price")
 		flMt, _ := strconv.ParseFloat(mt, 64)
 		flCp, _ := strconv.ParseFloat(ap, 64)
 		if flMt >= flCp {
-			genVar.Putin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "ON"}
-			fmt.Println("Laden_klein on")
+			genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "ON"}
+			log.Println("Laden_klein on")
 		} else {
-			genVar.Putin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "OFF"}
-			fmt.Println("Laden_klein off")
+			genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "OFF"}
+			log.Println("Laden_klein off")
 		}
 		return
 	}
@@ -239,10 +240,10 @@ func rulesInit() {
 	calculateBatteryPrice(fmt.Sprintf("%02d", hour))
 	sEinAus := getItemState("Soyosource_EinAus")
 	genVar.Pers.Set("Soyosource_EinAus", sEinAus, cache.DefaultExpiration)
-	fmt.Println("Soyosource_EinAus stored: ", sEinAus)
+	log.Println("Soyosource_EinAus stored: ", sEinAus)
 	lEinAus := getItemState("Laden_48_EinAus")
 	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.DefaultExpiration)
-	fmt.Println("Laden_48_EinAus stored: ", lEinAus)
+	log.Println("Laden_48_EinAus stored: ", lEinAus)
 }
 
 // special funtions as a support to make relatively short rules
@@ -272,9 +273,18 @@ func calculateBatteryPrice(hour string) {
 			}
 		}
 	}
-	if hour <= "11" {
+	if hour <= "11" && hour > "00" {
 		for i := intH; i <= 11; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > float64(0.21) {
+				prices = append(prices, flPrice)
+			}
+		}
+	}
+	if hour == "00" {
+		for i := intH; i <= 9; i++ {
+			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
 			if flPrice > float64(0.21) {
 				prices = append(prices, flPrice)
@@ -301,8 +311,8 @@ func calculateBatteryPrice(hour string) {
 	} else {
 		price = "9.9999"
 	}
-	fmt.Println("Bat-Price: ", price, hours)
-	fmt.Println(prices)
+	log.Println("Bat-Price: ", price, hours)
+	log.Println(prices)
 	genVar.Pers.Set("!BAT_PRICE", price, cache.DefaultExpiration)
 }
 
@@ -311,31 +321,43 @@ func battery(cmd string) {
 	case "off":
 		// Soyosource off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
-		fmt.Println("Soyosource switched off")
+		log.Println("Soyosource switched off")
+		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.DefaultExpiration)
+		genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Data: "0"}
 		// Loader-48 off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
-		fmt.Println("Laden_48 switched off")
+		log.Println("Laden_48 switched off")
+		genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: "0"}
+		genVar.Pers.Set("Digipot_Poti", "0", cache.DefaultExpiration)
 	case "load":
 		// Soyosource off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
-		fmt.Println("Soyosource switched off")
+		log.Println("Soyosource switched off")
+		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.DefaultExpiration)
+		genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Data: "0"}
 		// Loader-48 on
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"ON\"}"}
-		fmt.Println("Laden_48 switched on")
+		log.Println("Laden_48 switched on")
 	case "unload":
 		// Loader-48 off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
-		fmt.Println("Laden_48 switched off")
+		log.Println("Laden_48 switched off")
+		genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: "0"}
+		genVar.Pers.Set("Digipot_Poti", "0", cache.DefaultExpiration)
 		// Soyosource on
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"ON\"}"}
-		fmt.Println("Soyosource switched on")
+		log.Println("Soyosource switched on")
 	default:
 		// Soyosource off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
-		fmt.Println("Soyosource switched off")
+		log.Println("Soyosource switched off")
+		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.DefaultExpiration)
+		genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Data: "0"}
 		// Loader-48 off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
-		fmt.Println("Laden_48 switched off")
+		log.Println("Laden_48 switched off")
+		genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: "0"}
+		genVar.Pers.Set("Digipot_Poti", "0", cache.DefaultExpiration)
 	}
 }
 
@@ -343,12 +365,21 @@ func onOffByPrice(zone string, obj string) bool {
 	var flPrice float64 = 0
 	var flCurr float64 = 0
 	var hour string = obj[0:2]
+	var err error
 	if !(hour >= "21" || hour <= "06") && zone[0:1] == "n" {
 		return false
 	}
 	price := getItemState(fmt.Sprintf("Tibber_%s", zone))
-	flPrice, _ = strconv.ParseFloat(price, 64)
+	flPrice, err = strconv.ParseFloat(price, 64)
+	if err != nil {
+		log.Println("Price was not found", err)
+		return false
+	}
 	curr_price := getItemState("curr_price")
-	flCurr, _ = strconv.ParseFloat(curr_price, 64)
+	flCurr, err = strconv.ParseFloat(curr_price, 64)
+	if err != nil {
+		log.Println("Current price was not found", err)
+		return false
+	}
 	return flCurr <= flPrice
 }

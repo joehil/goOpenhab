@@ -62,9 +62,9 @@ func main() {
 	go restApiGet(genVar.Getin, genVar.Getout)
 	traceLog("restapi get interface was initialized")
 
-	genVar.Putin = make(chan Requestin)
+	genVar.Postin = make(chan Requestin)
 
-	go restApiPost(genVar.Putin)
+	go restApiPost(genVar.Postin)
 	traceLog("restapi post interface was initialized")
 
 	// Get commandline args
@@ -152,7 +152,7 @@ func procRun() {
 
 	// Catch signals
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGKILL)
+	signal.Notify(signals, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGTERM)
 	go catch_signals(signals)
 
 	// Open logs to read
@@ -272,8 +272,8 @@ func catch_signals(c <-chan os.Signal) {
 			log.Println("msg_trace switched off")
 			dfile.Close()
 		}
-		if s == syscall.SIGKILL {
-			log.Println("msg_trace switched off")
+		if s == syscall.SIGTERM {
+			fmt.Println("goOpenhab stopped")
 			os.Exit(0)
 		}
 	}

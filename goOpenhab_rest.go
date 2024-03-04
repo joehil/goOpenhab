@@ -55,7 +55,7 @@ func restApiPost(rin chan Requestin) {
 		// Erstelle einen neuen Request
 		req, err := http.NewRequest("POST", requrl, strings.NewReader(data))
 		if err != nil {
-			traceLog(fmt.Sprintf("restapi put creation error: %v", err))
+			traceLog(fmt.Sprintf("restapi post creation error: %v", err))
 		}
 
 		req.Header.Set("Content-Type", "text/plain")

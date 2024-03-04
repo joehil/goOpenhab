@@ -1,7 +1,7 @@
 package main
 
 import (
-        "github.com/patrickmn/go-cache"
+	"github.com/patrickmn/go-cache"
 )
 
 type Msginfo struct {
@@ -22,27 +22,27 @@ type Msgwarn struct {
 }
 
 type Mqttparms struct {
-	Topic string
+	Topic   string
 	Message string
 }
 
 type Requestin struct {
-	Node string
-	Item string
+	Node  string
+	Item  string
 	Value string
-	Data string
+	Data  string
 }
 
 type Generalvars struct {
-	Pers     *cache.Cache
-	Telegram chan string
-	Tbtoken  string
-	Chatid   int64
-	Mqttmsg  chan Mqttparms
+	Pers       *cache.Cache
+	Telegram   chan string
+	Tbtoken    string
+	Chatid     int64
+	Mqttmsg    chan Mqttparms
 	Mqttbroker string
-	Resturl string
-	Resttoken string
-	Getin chan Requestin
-	Getout chan string
-	Putin chan Requestin
+	Resturl    string
+	Resttoken  string
+	Getin      chan Requestin
+	Getout     chan string
+	Postin     chan Requestin
 }
