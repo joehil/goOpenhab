@@ -61,7 +61,7 @@ func processRulesInfo(mInfo Msginfo) {
 					poti = 0
 				}
 				if intDigiPot != poti {
-					debugLog(5,fmt.Sprintf("Digipot setzen auf: %d\n", poti))
+					debugLog(5, fmt.Sprintf("Digipot setzen auf: %d\n", poti))
 					// genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
 					genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Value: "state", Data: fmt.Sprintf("%d", poti)}
 					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.DefaultExpiration)
@@ -103,26 +103,49 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
-	// inform about sunrise
+	// inform about sunrise, perform actions
 	if (mInfo.Msgobject == "astro:sun:local:rise#event") &&
 		(mInfo.Msgnewstate == "END") {
 		genVar.Telegram <- "Sonnenaufgang"
-                genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
-                genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
-                debugLog(3, "Open Rolladen Gaste Seite")
-                debugLog(3, "Open Rolladen Gaste Vorne")
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
+		debugLog(3, "Open Rolladen Gaste Seite")
+		debugLog(3, "Open Rolladen Gaste Vorne")
 		return
 	}
 
-	// inform about sunset
+	// inform about sunset, perform actions
 	if (mInfo.Msgobject == "astro:sun:local:set#event") &&
 		(mInfo.Msgnewstate == "END") {
 		genVar.Telegram <- "Sonnenuntergang"
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"CLOSE\"}"}
-                genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"CLOSE\"}"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"CLOSE\"}"}
 		debugLog(3, "Close Rolladen Gaste Seite")
-                debugLog(3, "Close Rolladen Gaste Vorne")
+		debugLog(3, "Close Rolladen Gaste Vorne")
 		return
+	}
+
+	// perform actions for several switches
+	if mInfo.Msgobject == "Schalter_Rolladen_Gast_Action" {
+		switch mInfo.Msgnewstate {
+		case "1_single":
+			// Rolladen Gast Seite open
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
+			log.Println("Rolladen Gast Seite open")
+		case "2_single":
+			// Rolladen Gast Vorne open
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
+			log.Println("Rolladen Gast Seite open")
+		case "1_double":
+			// Rolladen Gast Seite close
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"CLOSE\"}"}
+			log.Println("Rolladen Gast Seite close")
+		case "2_double":
+			// Rolladen Gast Vorne close
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"CLOSE\"}"}
+			log.Println("Rolladen Gast Seite close")
+		default:
+		}
 	}
 }
 
