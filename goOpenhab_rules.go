@@ -61,7 +61,7 @@ func processRulesInfo(mInfo Msginfo) {
 					poti = 0
 				}
 				if intDigiPot != poti {
-					log.Printf("Digipot setzen auf: %d\n", poti)
+					debugLog(5,fmt.Sprintf("Digipot setzen auf: %d\n", poti))
 					// genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
 					genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Value: "state", Data: fmt.Sprintf("%d", poti)}
 					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.DefaultExpiration)
@@ -107,6 +107,10 @@ func processRulesInfo(mInfo Msginfo) {
 	if (mInfo.Msgobject == "astro:sun:local:rise#event") &&
 		(mInfo.Msgnewstate == "END") {
 		genVar.Telegram <- "Sonnenaufgang"
+                genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
+                genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
+                debugLog(3, "Open Rolladen Gaste Seite")
+                debugLog(3, "Open Rolladen Gaste Vorne")
 		return
 	}
 
@@ -114,6 +118,10 @@ func processRulesInfo(mInfo Msginfo) {
 	if (mInfo.Msgobject == "astro:sun:local:set#event") &&
 		(mInfo.Msgnewstate == "END") {
 		genVar.Telegram <- "Sonnenuntergang"
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"CLOSE\"}"}
+                genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"CLOSE\"}"}
+		debugLog(3, "Close Rolladen Gaste Seite")
+                debugLog(3, "Close Rolladen Gaste Vorne")
 		return
 	}
 }

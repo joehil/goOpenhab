@@ -38,7 +38,7 @@ func publishMqtt(mess chan Mqttparms) {
 		message = inmsg.Message
 		token := client.Publish(topic, byte(qos), false, message)
 		token.Wait()
-		traceLog(fmt.Sprintf("Message published to topic %s: %s", topic, message))
+		debugLog(5,fmt.Sprintf("Message published to topic %s: %s", topic, message))
 		time.Sleep(1 * time.Second)
 	}
 }

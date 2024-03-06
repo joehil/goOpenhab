@@ -6,6 +6,12 @@ import (
 )
 
 func timeTrigger() {
+	var secs int
+	_,_,secs = time.Now().Clock()
+	for secs != 0 {
+		time.Sleep(1 * time.Second)
+		_,_,secs = time.Now().Clock()
+	}
 	for {
 		var mInfo Msginfo
 		time.Sleep(1 * time.Minute)
