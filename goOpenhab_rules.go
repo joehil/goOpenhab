@@ -285,6 +285,8 @@ func calculateBatteryPrice(hour string) {
 	var price string
 	var flPrice float64
 	var hours int
+
+	boolWeather := judgeWeather(4)
 	soc := getItemState("Solarakku_SOC")
 	flSoc, _ = strconv.ParseFloat(soc, 64)
 	flSoc -= 50
@@ -295,7 +297,7 @@ func calculateBatteryPrice(hour string) {
 		hours += 1
 	}
 	intH, _ := strconv.Atoi(hour)
-	if hour > "11" {
+	if hour > "11" || (hour > "00" && boolWeather) {
 		for i := intH; i < 24; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
@@ -304,7 +306,7 @@ func calculateBatteryPrice(hour string) {
 			}
 		}
 	}
-	if hour <= "11" && hour > "00" {
+	if hour <= "11" && hour > "00" && !boolWeather {
 		for i := intH; i <= 11; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
@@ -413,4 +415,15 @@ func onOffByPrice(zone string, obj string) bool {
 		return false
 	}
 	return flCurr <= flPrice
+}
+
+func judgeWeather(search int) bool {
+	var result bool = false
+	genVar.Getin <- Requestin{Node: "items", Item: "Weather_Information_Condition", Value: "state"}
+	weather := <-genVar.Getout
+	intWeather, err := strconv.Atoi(weather)
+	if err == nil {
+		result = intWeather >= search
+	}
+	return result
 }

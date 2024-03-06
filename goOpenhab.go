@@ -313,7 +313,7 @@ func tailLog(logFile string) {
 	}
 	for line := range t.Lines {
 		tNow := time.Now()
-		if tNow.Sub(timeOld) > time.Second {
+		if tNow.Sub(timeOld) > 10*time.Second {
 			go procLine(line.Text)
 		}
 	}

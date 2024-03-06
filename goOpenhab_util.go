@@ -48,15 +48,15 @@ func msgLog(minfo Msginfo) {
 
 func getItemState(item string) string {
 	var answer string = ""
-	if x, found := genVar.Pers.Get(item); found {
-		answer = x.(string)
-	} else {
-		genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
-		answer = <-genVar.Getout
-		if answer != "" {
-			genVar.Postin <- Requestin{Node: "items", Item: item, Value: "state", Data: answer}
-		}
+	//	if x, found := genVar.Pers.Get(item); found {
+	//		answer = x.(string)
+	//	} else {
+	genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
+	answer = <-genVar.Getout
+	if answer != "" {
+		genVar.Pers.Set(item, answer, cache.DefaultExpiration)
 	}
+	//	}
 	return answer
 }
 
