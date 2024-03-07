@@ -146,6 +146,7 @@ func processRulesInfo(mInfo Msginfo) {
 			log.Println("Rolladen Gast Seite close")
 		default:
 		}
+		return
 	}
 }
 
@@ -248,7 +249,7 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"OFF\"}"}
 			log.Println("ZOE loading ended")
 		}
-		mt := getItemState("Tibber_mintotal")
+		mt := getItemState("Tibber_t2")
 		//              ap := getItemState("curr_price")
 		flMt, _ := strconv.ParseFloat(mt, 64)
 		flCp, _ := strconv.ParseFloat(ap, 64)
