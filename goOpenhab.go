@@ -19,6 +19,7 @@ import (
 
 var do_trace bool = false
 var msg_trace bool = false
+var bPanic bool = false
 var logseverity int
 var pidfile string
 var ownlog string
@@ -116,7 +117,11 @@ func main() {
 			os.Exit(0)
 		}
 		if a1 == "run" {
-			procRun()
+			//			procRun()
+			safeRun(procRun)
+			if bPanic {
+				panic("Program abend")
+			}
 		}
 		fmt.Println("parameter invalid")
 		os.Exit(-1)

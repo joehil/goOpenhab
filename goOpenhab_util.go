@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -48,15 +49,15 @@ func msgLog(minfo Msginfo) {
 
 func getItemState(item string) string {
 	var answer string = ""
-	//	if x, found := genVar.Pers.Get(item); found {
-	//		answer = x.(string)
-	//	} else {
-	genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
-	answer = <-genVar.Getout
-	if answer != "" {
-		genVar.Pers.Set(item, answer, cache.DefaultExpiration)
+	if x, found := genVar.Pers.Get(item); found {
+		answer = x.(string)
+	} else {
+		genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
+		answer = <-genVar.Getout
+		//if answer != "" {
+		//	genVar.Pers.Set(item, answer, cache.DefaultExpiration)
+		//}
 	}
-	//	}
 	return answer
 }
 
@@ -103,4 +104,30 @@ func restartNetwork() {
 func reboot() {
 	cmd := exec.Command("/usr/bin/sudo", "/usr/sbin/reboot")
 	cmd.Run()
+}
+
+func printStackTrace() {
+	buffer := make([]byte, 1024)
+	for {
+		n := runtime.Stack(buffer, false)
+		if n < len(buffer) {
+			buffer = buffer[:n]
+			break
+		}
+		buffer = make([]byte, len(buffer)*2)
+	}
+	fmt.Printf("Stack trace:\n%s\n", buffer)
+}
+
+func safeRun(f func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic:", r)
+			printStackTrace()
+			fmt.Println("Wait for a minute")
+			time.Sleep(time.Minute)
+			bPanic = true
+		}
+	}()
+	f()
 }

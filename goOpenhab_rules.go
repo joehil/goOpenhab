@@ -25,6 +25,7 @@ func processRulesInfo(mInfo Msginfo) {
 		if sEinAus == "ON" {
 			var inverter int
 			strInverter := getItemState("Soyosource_Power_Value")
+			debugLog(5, fmt.Sprint("Einlesen Inverter: ", strInverter))
 			inverter, _ = strconv.Atoi(strInverter)
 			flInverter = flNew * float64(0.5)
 			inverter += int(flInverter)
@@ -224,17 +225,7 @@ func chronoEvents(mInfo Msginfo) {
 
 	// this rule runs at the first minute of each hour
 	if mInfo.Msgobject[3:5] == "00" {
-		item := "Tibber_total" + mInfo.Msgobject[0:2]
-		if mInfo.Msgobject[0:2] == "00" {
-			item = "Tibber_tomorrow00"
-		}
-		log.Println(item)
-		genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
-		answer := <-genVar.Getout
-		log.Println(answer)
-		if answer != "" {
-			genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
-		}
+		setCurrentPrice(mInfo.Msgobject[0:2])
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
 		return
 	}
@@ -276,6 +267,7 @@ func rulesInit() {
 	lEinAus := getItemState("Laden_48_EinAus")
 	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.DefaultExpiration)
 	log.Println("Laden_48_EinAus stored: ", lEinAus)
+	setCurrentPrice(fmt.Sprintf("%02d", hour))
 }
 
 // special funtions as a support to make relatively short rules
@@ -427,4 +419,18 @@ func judgeWeather(search int) bool {
 		result = intWeather >= search
 	}
 	return result
+}
+
+func setCurrentPrice(h string) {
+	item := "Tibber_total" + h
+	if h == "00" {
+		item = "Tibber_tomorrow00"
+	}
+	log.Println(item)
+	genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
+	answer := <-genVar.Getout
+	log.Println(answer)
+	if answer != "" {
+		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
+	}
 }
