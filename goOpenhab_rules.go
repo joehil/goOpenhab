@@ -260,14 +260,14 @@ func chronoEvents(mInfo Msginfo) {
 func rulesInit() {
 	now := time.Now()
 	hour := now.Hour()
-	calculateBatteryPrice(fmt.Sprintf("%02d", hour))
+	setCurrentPrice(fmt.Sprintf("%02d", hour))
 	sEinAus := getItemState("Soyosource_EinAus")
 	genVar.Pers.Set("Soyosource_EinAus", sEinAus, cache.DefaultExpiration)
 	log.Println("Soyosource_EinAus stored: ", sEinAus)
 	lEinAus := getItemState("Laden_48_EinAus")
 	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.DefaultExpiration)
 	log.Println("Laden_48_EinAus stored: ", lEinAus)
-	setCurrentPrice(fmt.Sprintf("%02d", hour))
+	calculateBatteryPrice(fmt.Sprintf("%02d", hour))
 }
 
 // special funtions as a support to make relatively short rules

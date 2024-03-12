@@ -19,14 +19,11 @@ import (
 
 var do_trace bool = false
 var msg_trace bool = false
-var bPanic bool = false
+var counter uint64 = 0
 var logseverity int
 var pidfile string
 var ownlog string
 var logs []string
-var rlogs []*os.File
-var rpos []int64
-var loghash []uint32
 var timeOld time.Time
 var dumpfile string
 var dfile *os.File
@@ -44,30 +41,6 @@ func main() {
 	read_config()
 
 	timeOld = time.Now()
-
-	genVar.Pers = cache.New(3*time.Hour, 10*time.Hour)
-	traceLog("Persistence was initialized")
-
-	genVar.Telegram = make(chan string)
-
-	go sendTelegram(genVar.Telegram)
-	traceLog("Telegram interface was initialized")
-
-	genVar.Mqttmsg = make(chan Mqttparms, 5)
-
-	go publishMqtt(genVar.Mqttmsg)
-	traceLog("MQTT interface was initialized")
-
-	genVar.Getin = make(chan Requestin)
-	genVar.Getout = make(chan string)
-
-	go restApiGet(genVar.Getin, genVar.Getout)
-	traceLog("restapi get interface was initialized")
-
-	genVar.Postin = make(chan Requestin)
-
-	go restApiPost(genVar.Postin)
-	traceLog("restapi post interface was initialized")
 
 	// Get commandline args
 	if len(os.Args) > 1 {
@@ -117,11 +90,8 @@ func main() {
 			os.Exit(0)
 		}
 		if a1 == "run" {
-			//			procRun()
-			safeRun(procRun)
-			if bPanic {
-				panic("Program abend")
-			}
+			procRun()
+			os.Exit(0)
 		}
 		fmt.Println("parameter invalid")
 		os.Exit(-1)
@@ -138,6 +108,30 @@ func procRun() {
 		log.Fatalf("Pidfile could not be written: %v", err)
 	}
 	defer os.Remove(pidfile)
+
+	genVar.Pers = cache.New(3*time.Hour, 10*time.Hour)
+	traceLog("Persistence was initialized")
+
+	genVar.Telegram = make(chan string)
+
+	go sendTelegram(genVar.Telegram)
+	traceLog("Telegram interface was initialized")
+
+	genVar.Mqttmsg = make(chan Mqttparms, 5)
+
+	go publishMqtt(genVar.Mqttmsg)
+	traceLog("MQTT interface was initialized")
+
+	genVar.Getin = make(chan Requestin)
+	genVar.Getout = make(chan string)
+
+	go restApiGet(genVar.Getin, genVar.Getout)
+	traceLog("restapi get interface was initialized")
+
+	genVar.Postin = make(chan Requestin)
+
+	go restApiPost(genVar.Postin)
+	traceLog("restapi post interface was initialized")
 
 	// Open log file
 	ownlogger := &lumberjack.Logger{
@@ -214,6 +208,7 @@ func procLine(msg string) {
 			}
 			msgLog(mInfo)
 			processRulesInfo(mInfo)
+			counter++
 		}
 		if msgType == "WARN" {
 			mWarn.Msgdate = msg[0:10]

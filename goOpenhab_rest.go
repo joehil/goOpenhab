@@ -5,9 +5,11 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func restApiGet(rin chan Requestin, rout chan string) {
+	var errCount int = 0
 	url := genVar.Resturl     // Die URL der API, die du aufrufen möchtest
 	token := genVar.Resttoken // Der Bearer Token für die Authentifizierung
 
@@ -18,6 +20,7 @@ func restApiGet(rin chan Requestin, rout chan string) {
 		req, err := http.NewRequest("GET", requrl, nil)
 		if err != nil {
 			traceLog(fmt.Sprintf("restapi get creation error: %v", err))
+			errCount++
 		}
 
 		// Füge den Authorization-Header zum Request hinzu
@@ -28,19 +31,28 @@ func restApiGet(rin chan Requestin, rout chan string) {
 		resp, err := client.Do(req)
 		if err != nil {
 			traceLog(fmt.Sprintf("restapi get processing error: %v", err))
+			errCount++
 		}
 
 		// Lies den Response Body
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			traceLog(fmt.Sprintf("restapi get error reading response: %v", err))
+			errCount++
 		} else {
 			// Gib den Response Body aus
 			debugLog(5, fmt.Sprintf("restapi get received response: %v", string(body)))
 			rout <- string(body)
+			errCount = 0
 		}
 
 		resp.Body.Close()
+
+		if errCount > 3 {
+			fmt.Println("Too many errors in restapi, wait for one minute")
+			time.Sleep(time.Minute)
+			panic("Too many errors")
+		}
 	}
 }
 
