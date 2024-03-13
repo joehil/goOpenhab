@@ -149,6 +149,13 @@ func processRulesInfo(mInfo Msginfo) {
 		}
 		return
 	}
+
+	// log internal events (restapi, mqtt, watchdog)
+	if len(mInfo.Msgobject) >= 8 {
+		if mInfo.Msgevent[1:7] == "restapi" || mInfo.Msgevent[1:4] == "mqtt" || mInfo.Msgevent == "watchdog.event" {
+			log.Println(mInfo.Msgevent, mInfo.Msgobject)
+		}
+	}
 }
 
 func chronoEvents(mInfo Msginfo) {

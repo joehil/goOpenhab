@@ -33,7 +33,9 @@ func timeTrigger() {
 		go processRulesInfo(mInfo)
 		debugLog(5, fmt.Sprintf("Watchdog counter: %d", counter))
 		if counter == old {
-			panic("Program seems to be frozen")
+			mInfo.Msgevent = "watchdog.event"
+			mInfo.Msgobject = "Watchdog"
+			go processRulesInfo(mInfo)
 		}
 		old = counter
 	}

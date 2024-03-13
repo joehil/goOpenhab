@@ -38,7 +38,7 @@ func publishMqtt(mess chan Mqttparms) {
 		message = inmsg.Message
 		token := client.Publish(topic, byte(qos), false, message)
 		token.Wait()
-		debugLog(5,fmt.Sprintf("Message published to topic %s: %s", topic, message))
+		debugLog(5, fmt.Sprintf("Message published to topic %s: %s", topic, message))
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -54,7 +54,7 @@ var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
 // Modified connectLostHandler with reconnect logic
 var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
 	traceLog(fmt.Sprintf("mqtt connection lost: %v", err))
-	traceLog(fmt.Sprint("mqtt attempting to reconnect..."))
+	traceLog("mqtt attempting to reconnect...")
 	for {
 		time.Sleep(5 * time.Second) // Wait for 5 seconds before trying to reconnect
 		if token := client.Connect(); token.Wait() && token.Error() == nil {
@@ -62,6 +62,7 @@ var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err
 			break // Exit the loop once reconnected
 		} else {
 			traceLog(fmt.Sprintf("mqtt reconnect attempt failed: %v", token.Error()))
+			createMessage("mqtt.reconnect.event", fmt.Sprintf("%v", token.Error()))
 			// You may choose to implement additional logic to limit the number of retries or to handle failures differently
 		}
 	}

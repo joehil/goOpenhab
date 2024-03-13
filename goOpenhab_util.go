@@ -104,3 +104,22 @@ func reboot() {
 	cmd := exec.Command("/usr/bin/sudo", "/usr/sbin/reboot")
 	cmd.Run()
 }
+
+func createMessage(event string, object string) {
+	var mInfo Msginfo
+
+	hours, minutes, seconds := time.Now().Clock()
+
+	currentTime := time.Now()
+	tdat := fmt.Sprintf("%04d-%02d-%02d",
+		currentTime.Year(),
+		currentTime.Month(),
+		currentTime.Day())
+
+	mInfo.Msgdate = tdat
+	mInfo.Msgtime = fmt.Sprintf("%02d:%02d:%02d.000", hours, minutes, seconds)
+	mInfo.Msgevent = event
+	mInfo.Msgobject = object
+
+	go processRulesInfo(mInfo)
+}
