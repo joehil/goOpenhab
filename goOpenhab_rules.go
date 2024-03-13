@@ -151,9 +151,12 @@ func processRulesInfo(mInfo Msginfo) {
 	}
 
 	// log internal events (restapi, mqtt, watchdog)
-	if len(mInfo.Msgobject) >= 8 {
-		if mInfo.Msgevent[1:7] == "restapi" || mInfo.Msgevent[1:4] == "mqtt" || mInfo.Msgevent == "watchdog.event" {
+	if len(mInfo.Msgevent) >= 8 {
+		if mInfo.Msgevent[0:7] == "restapi" || mInfo.Msgevent[0:4] == "mqtt" || mInfo.Msgevent == "watchdog.event" {
 			log.Println(mInfo.Msgevent, mInfo.Msgobject)
+			if mInfo.Msgevent == "watchdog.event" {
+				panic("Watchdog called")
+			}
 		}
 	}
 }

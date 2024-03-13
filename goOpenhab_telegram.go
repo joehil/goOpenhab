@@ -5,7 +5,6 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	_ "github.com/lib/pq"
-//	"github.com/joehil/jhtype"
 )
 
 func sendTelegram(msg chan string) {

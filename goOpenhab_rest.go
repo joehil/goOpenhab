@@ -31,21 +31,22 @@ func restApiGet(rin chan Requestin, rout chan string) {
 			traceLog(fmt.Sprintf("restapi get processing error: %v", err))
 			createMessage("restapi.processing.event", fmt.Sprintf("%v", err))
 
-		}
-
-		// Lies den Response Body
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			traceLog(fmt.Sprintf("restapi get error reading response: %v", err))
-			createMessage("restapi.get.event", fmt.Sprintf("%v", err))
-
 		} else {
-			// Gib den Response Body aus
-			debugLog(5, fmt.Sprintf("restapi get received response: %v", string(body)))
-			rout <- string(body)
-		}
 
-		resp.Body.Close()
+			// Lies den Response Body
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				traceLog(fmt.Sprintf("restapi get error reading response: %v", err))
+				createMessage("restapi.get.event", fmt.Sprintf("%v", err))
+
+			} else {
+				// Gib den Response Body aus
+				debugLog(5, fmt.Sprintf("restapi get received response: %v", string(body)))
+				rout <- string(body)
+			}
+
+			resp.Body.Close()
+		}
 	}
 }
 

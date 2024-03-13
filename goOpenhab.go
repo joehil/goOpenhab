@@ -133,6 +133,9 @@ func procRun() {
 	go restApiPost(genVar.Postin)
 	traceLog("restapi post interface was initialized")
 
+	go timeTrigger()
+	traceLog("chrono server was initialized")
+
 	// Open log file
 	ownlogger := &lumberjack.Logger{
 		Filename:   ownlog,
@@ -159,9 +162,6 @@ func procRun() {
 	if do_trace {
 		log.Println(logs)
 	}
-
-	go timeTrigger()
-	traceLog("chrono server was initialized")
 
 	for _, rlog := range logs {
 		traceLog("Task started for " + rlog)
