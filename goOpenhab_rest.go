@@ -18,7 +18,7 @@ func restApiGet(rin chan Requestin, rout chan string) {
 		req, err := http.NewRequest("GET", requrl, nil)
 		if err != nil {
 			traceLog(fmt.Sprintf("restapi get creation error: %v", err))
-			createMessage("restapi.creation.event", fmt.Sprintf("%v", err))
+			createMessage("restapi.creation.event", fmt.Sprintf("%v", err), "")
 		}
 
 		// Füge den Authorization-Header zum Request hinzu
@@ -29,7 +29,7 @@ func restApiGet(rin chan Requestin, rout chan string) {
 		resp, err := client.Do(req)
 		if err != nil {
 			traceLog(fmt.Sprintf("restapi get processing error: %v", err))
-			createMessage("restapi.processing.event", fmt.Sprintf("%v", err))
+			createMessage("restapi.processing.event", fmt.Sprintf("%v", err), "")
 
 		} else {
 
@@ -37,7 +37,7 @@ func restApiGet(rin chan Requestin, rout chan string) {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				traceLog(fmt.Sprintf("restapi get error reading response: %v", err))
-				createMessage("restapi.get.event", fmt.Sprintf("%v", err))
+				createMessage("restapi.get.event", fmt.Sprintf("%v", err), "")
 
 			} else {
 				// Gib den Response Body aus
@@ -62,7 +62,7 @@ func restApiPost(rin chan Requestin) {
 		req, err := http.NewRequest("POST", requrl, strings.NewReader(data))
 		if err != nil {
 			traceLog(fmt.Sprintf("restapi post creation error: %v", err))
-			createMessage("restapi.creation.event", fmt.Sprintf("%v", err))
+			createMessage("restapi.creation.event", fmt.Sprintf("%v", err), "")
 		}
 
 		req.Header.Set("Content-Type", "text/plain")
@@ -74,13 +74,13 @@ func restApiPost(rin chan Requestin) {
 		resp, err := client.Do(req)
 		if err != nil {
 			traceLog(fmt.Sprintf("restapi post processing error: %v", err))
-			createMessage("restapi.processing.event", fmt.Sprintf("%v", err))
+			createMessage("restapi.processing.event", fmt.Sprintf("%v", err), "")
 		}
 
 		// Prüfe den Statuscode des Response, um sicherzustellen, dass der Request erfolgreich war
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != 202 {
 			traceLog(fmt.Sprintf("restapi post statuscode: %d", resp.StatusCode))
-			createMessage("restapi.status.event", fmt.Sprintf("%d", resp.StatusCode))
+			createMessage("restapi.status.event", fmt.Sprintf("%d", resp.StatusCode), "")
 		}
 		resp.Body.Close()
 	}

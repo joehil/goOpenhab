@@ -150,9 +150,38 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	// perform actions for Drehknopf1 via MQTT
+	if mInfo.Msgobject == "zigbee2mqtt/0xa4c1388f96c41f89" {
+		switch readJson(mInfo.Msgnewstate, "action") {
+		case "single":
+			// switch light on half brightness
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x70ac08fffe99902b/l1/set", Message: "{\"state\":\"ON\",\"brightness\":127}"}
+			log.Println("Living room light on, half brightness")
+		case "double":
+			// switch light off
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x70ac08fffe99902b/l1/set", Message: "{\"state\":\"OFF\"}"}
+			log.Println("Living room light off")
+		case "hold":
+			// switch light on full brightness
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x70ac08fffe99902b/l1/set", Message: "{\"state\":\"ON\",\"brightness\":255}"}
+			log.Println("Living room light on, full brightness")
+		case "rotate_right":
+			// Rolladen Gast Vorne close
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x70ac08fffe99902b/l1/set", Message: "{\"state\":\"ON\"}"}
+			log.Println("Rolladen Gast Seite close")
+		default:
+		}
+		return
+	}
+
+	// MQTT pubhandler events
+	//	if mInfo.Msgevent == "mqtt.pubhandler.event" {
+	//		log.Println(mInfo.Msgevent, mInfo.Msgobject, readJson(mInfo.Msgnewstate, "action"))
+	//	}
+
 	// log internal events (restapi, mqtt, watchdog)
 	if len(mInfo.Msgevent) >= 8 {
-		if mInfo.Msgevent[0:7] == "restapi" || mInfo.Msgevent[0:4] == "mqtt" || mInfo.Msgevent == "watchdog.event" {
+		if mInfo.Msgevent[0:7] == "restapi" || mInfo.Msgevent == "mqtt.reconnect.event" || mInfo.Msgevent == "watchdog.event" {
 			log.Println(mInfo.Msgevent, mInfo.Msgobject)
 			if mInfo.Msgevent == "watchdog.event" {
 				panic("Watchdog called")

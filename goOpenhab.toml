@@ -14,6 +14,11 @@ chatid  = <chatid>
 dump_file = "/tmp/goOpenhab.dump"
 
 mqtt_broker = "tcp://<ip of mqtt broker:1883"
+# list of topics
+topics = [
+  "topic1",
+  "topic2"
+]
 
 rest_url = "http://127.0.0.1:8080/rest"
 rest_token = "<openhab token>"

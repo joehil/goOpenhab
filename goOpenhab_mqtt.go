@@ -24,11 +24,13 @@ func publishMqtt(mess chan Mqttparms) {
 		traceLog(fmt.Sprintln(token.Error()))
 	}
 
-	// Subscribe to a topic
-	subtopic := "goopenhab/intopic"
 	qos := 1
-	if token := client.Subscribe(subtopic, byte(qos), nil); token.Wait() && token.Error() != nil {
-		traceLog(fmt.Sprintln(token.Error()))
+	// Subscribe to a topics
+	for _, topic := range topics {
+		if token := client.Subscribe(topic, byte(qos), nil); token.Wait() && token.Error() != nil {
+			traceLog(fmt.Sprintln(token.Error()))
+		}
+
 	}
 
 	for {
@@ -44,7 +46,8 @@ func publishMqtt(mess chan Mqttparms) {
 }
 
 var messagePubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	traceLog(fmt.Sprintf("mqtt message received: %s from topic: %s", msg.Payload(), msg.Topic()))
+	debugLog(5, fmt.Sprintf("mqtt message received: %s from topic: %s", msg.Payload(), msg.Topic()))
+	createMessage("mqtt.pubhandler.event", msg.Topic(), string(msg.Payload()))
 }
 
 var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
@@ -62,7 +65,7 @@ var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err
 			break // Exit the loop once reconnected
 		} else {
 			traceLog(fmt.Sprintf("mqtt reconnect attempt failed: %v", token.Error()))
-			createMessage("mqtt.reconnect.event", fmt.Sprintf("%v", token.Error()))
+			createMessage("mqtt.reconnect.event", fmt.Sprintf("%v", token.Error()), "")
 			// You may choose to implement additional logic to limit the number of retries or to handle failures differently
 		}
 	}

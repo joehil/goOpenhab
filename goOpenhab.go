@@ -24,6 +24,7 @@ var logseverity int
 var pidfile string
 var ownlog string
 var logs []string
+var topics []string
 var timeOld time.Time
 var dumpfile string
 var dfile *os.File
@@ -287,6 +288,7 @@ func read_config() {
 	genVar.Tbtoken = viper.GetString("tbtoken")
 	genVar.Chatid = int64(viper.GetInt("chatid"))
 	genVar.Mqttbroker = viper.GetString("mqtt_broker")
+	topics = viper.GetStringSlice("topics")
 	genVar.Resturl = viper.GetString("rest_url")
 	genVar.Resttoken = viper.GetString("rest_token")
 	dumpfile = viper.GetString("dump_file")
@@ -301,6 +303,9 @@ func read_config() {
 		log.Println("Logseverity: ", logseverity)
 
 		for i, v := range logs {
+			log.Printf("Index: %d, Value: %v\n", i, v)
+		}
+		for i, v := range topics {
 			log.Printf("Index: %d, Value: %v\n", i, v)
 		}
 	}

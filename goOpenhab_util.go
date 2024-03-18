@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os/exec"
@@ -105,7 +106,7 @@ func reboot() {
 	cmd.Run()
 }
 
-func createMessage(event string, object string) {
+func createMessage(event string, object string, status string) {
 	var mInfo Msginfo
 
 	hours, minutes, seconds := time.Now().Clock()
@@ -120,6 +121,23 @@ func createMessage(event string, object string) {
 	mInfo.Msgtime = fmt.Sprintf("%02d:%02d:%02d.000", hours, minutes, seconds)
 	mInfo.Msgevent = event
 	mInfo.Msgobject = object
+	mInfo.Msgnewstate = status
 
 	go processRulesInfo(mInfo)
+}
+
+func readJson(inJson string, field string) string {
+	jsonData := []byte(inJson)
+
+	var result map[string]interface{}
+
+	if err := json.Unmarshal(jsonData, &result); err != nil {
+		log.Printf("error unmarshalling JSON: %v", err)
+	}
+
+	if outJson, ok := result[field].(string); ok {
+		return outJson
+	} else {
+		return ""
+	}
 }
