@@ -47,6 +47,12 @@ func processRulesInfo(mInfo Msginfo) {
 				intDigiPot, _ := strconv.Atoi(digiPot)
 				var flPoti float64 = flNew * float64(-0.255)
 				poti = int(flPoti) + intDigiPot
+				if poti > 255 {
+					poti = 255
+				}
+				if poti < 0 {
+					poti = 0
+				}
 				x, found := genVar.Pers.Get("!BATTERYLOAD")
 				if found {
 					if x == "1" {
@@ -54,15 +60,12 @@ func processRulesInfo(mInfo Msginfo) {
 							poti = 127
 						}
 					}
-				}
-				if poti > 255 {
-					poti = 255
-				}
-				if poti < 0 {
-					poti = 0
+					if x == "2" {
+						poti = 255
+					}
 				}
 				if intDigiPot != poti {
-					debugLog(5, fmt.Sprintf("Digipot setzen auf: %d\n", poti))
+					debugLog(5, fmt.Sprintf("Digipot setzen auf: %d", poti))
 					// genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
 					genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Value: "state", Data: fmt.Sprintf("%d", poti)}
 					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.DefaultExpiration)
@@ -229,6 +232,9 @@ func chronoEvents(mInfo Msginfo) {
 			if x == "1" {
 				cmd = "load"
 			}
+			if x == "2" {
+				cmd = "loadfull"
+			}
 		}
 	}
 	debugLog(5, fmt.Sprint("cmd: ", cmd))
@@ -247,19 +253,30 @@ func chronoEvents(mInfo Msginfo) {
 
 	// this rule runs at minute 2
 	if strings.ContainsAny(mInfo.Msgobject[4:5], "2") {
-		//              soc := getItemState("Solarakku_SOC")
+		var btLoad string = "X"
 		mt := getItemState("Tibber_mintotal")
+		zone := getItemState("schalter_laden48_zone")
+		debugLog(5, "Zone: Tibber_"+zone)
+		zonePrice := getItemState("Tibber_" + zone)
+		debugLog(5, "Zone price: "+zonePrice)
 		//		ap := getItemState("curr_price")
 		flMt, _ := strconv.ParseFloat(mt, 64)
 		flCp, _ := strconv.ParseFloat(ap, 64)
+		flZone, _ := strconv.ParseFloat(zonePrice, 64)
+		debugLog(5, fmt.Sprintf("Zone price float: %0.4f", flZone))
 		if soc < "44.00" && flMt >= flCp {
-			genVar.Pers.Set("!BATTERYLOAD", "1", cache.DefaultExpiration)
-			log.Println("Battery Load on")
+			btLoad = "1"
+			log.Println("Battery Load on (emergency)")
 		}
-		if soc > "55.00" || flMt < flCp {
-			genVar.Pers.Set("!BATTERYLOAD", "0", cache.DefaultExpiration)
+		if flZone >= flCp {
+			btLoad = "2"
+			log.Println("Battery Load on (zone)")
+		}
+		if (soc > "55.00" || flMt < flCp) && btLoad == "X" {
+			btLoad = "0"
 			log.Println("Battery Load off")
 		}
+		genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.DefaultExpiration)
 	}
 
 	// this rule runs at the first minute of each hour
@@ -403,6 +420,15 @@ func battery(cmd string) {
 		// Loader-48 on
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"ON\"}"}
 		log.Println("Laden_48 switched on")
+	case "loadfull":
+		// Soyosource off
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
+		log.Println("Soyosource switched off")
+		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.DefaultExpiration)
+		genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Data: "0"}
+		// Loader-48 on
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"ON\"}"}
+		log.Println("Laden_48 switched on full")
 	case "unload":
 		// Loader-48 off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
