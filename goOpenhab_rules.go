@@ -201,6 +201,8 @@ func processRulesInfo(mInfo Msginfo) {
 		if mInfo.Msgevent[0:7] == "restapi" || mInfo.Msgevent == "mqtt.reconnect.event" || mInfo.Msgevent == "watchdog.event" {
 			log.Println(mInfo.Msgevent, mInfo.Msgobject)
 			if mInfo.Msgevent == "watchdog.event" {
+				restartNetwork()
+				time.Sleep((5 * time.Second))
 				panic("Watchdog called")
 			}
 		}
