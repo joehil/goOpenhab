@@ -177,6 +177,20 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	// perform actions for pushbutton via MQTT
+	if mInfo.Msgobject == "zigbee2mqtt/0x00158d000893ac30" {
+		switch readJson(mInfo.Msgnewstate, "action") {
+		case "single":
+		case "double":
+		case "hold":
+			// switch light on in our bedroom
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13855c794f2f9/set", Message: "{\"state\":\"TOGGLE\"}"}
+			log.Println("Toggle bedroom light")
+		default:
+		}
+		return
+	}
+
 	// MQTT pubhandler events
 	//	if mInfo.Msgevent == "mqtt.pubhandler.event" {
 	//		log.Println(mInfo.Msgevent, mInfo.Msgobject, readJson(mInfo.Msgnewstate, "action"))
@@ -330,6 +344,7 @@ func rulesInit() {
 
 func calculateBatteryPrice(hour string) {
 	var flSoc float64
+	var flZone float64
 	var prices []float64
 	var price string
 	var flPrice float64
@@ -337,6 +352,11 @@ func calculateBatteryPrice(hour string) {
 
 	boolWeather := judgeWeather(4)
 	soc := getItemState("Solarakku_SOC")
+	zone := getItemState("Tibber_m1")
+	flZone, err := strconv.ParseFloat(zone, 64)
+	if err != nil {
+		flZone = float64(0.25)
+	}
 	flSoc, _ = strconv.ParseFloat(soc, 64)
 	flSoc -= 50
 	if flSoc < float64(0) {
@@ -350,7 +370,7 @@ func calculateBatteryPrice(hour string) {
 		for i := intH; i < 24; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
-			if flPrice > float64(0.21) {
+			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
 		}
@@ -359,7 +379,7 @@ func calculateBatteryPrice(hour string) {
 		for i := intH; i <= 11; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
-			if flPrice > float64(0.21) {
+			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
 		}
@@ -368,7 +388,7 @@ func calculateBatteryPrice(hour string) {
 		for i := intH; i <= 9; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
-			if flPrice > float64(0.21) {
+			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
 		}
@@ -377,7 +397,7 @@ func calculateBatteryPrice(hour string) {
 		for i := 0; i < 10; i++ {
 			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
-			if flPrice > float64(0.21) {
+			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
 		}
