@@ -153,29 +153,11 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
-	// perform actions for Drehknopf1 via MQTT
-	if mInfo.Msgobject == "zigbee2mqtt/0xa4c1388f96c41f89" {
-		switch readJson(mInfo.Msgnewstate, "action") {
-		case "single":
-			// switch light on half brightness
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x70ac08fffe99902b/l1/set", Message: "{\"state\":\"ON\",\"brightness\":127}"}
-			log.Println("Living room light on, half brightness")
-		case "double":
-			// switch light off
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x70ac08fffe99902b/l1/set", Message: "{\"state\":\"OFF\"}"}
-			log.Println("Living room light off")
-		case "hold":
-			// switch light on full brightness
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x70ac08fffe99902b/l1/set", Message: "{\"state\":\"ON\",\"brightness\":255}"}
-			log.Println("Living room light on, full brightness")
-		case "rotate_right":
-			// Rolladen Gast Vorne close
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x70ac08fffe99902b/l1/set", Message: "{\"state\":\"ON\"}"}
-			log.Println("Rolladen Gast Seite close")
-		default:
-		}
-		return
-	}
+	// perform actions dimmer knob via MQTT
+	dimmerKnob(mInfo, "WZDIMMER1", "action", "zigbee2mqtt/0xa4c1388f96c41f89", "zigbee2mqtt/0xf4b3b1fffef20459/l1/set")
+
+	// perform actions dimmer knob via MQTT
+	dimmerKnob(mInfo, "WZDIMMER2", "action", "zigbee2mqtt/0xa4c138672aa2c651", "zigbee2mqtt/0xf4b3b1fffef20459/l2/set")
 
 	// perform actions for pushbutton via MQTT
 	if mInfo.Msgobject == "zigbee2mqtt/0x00158d000893ac30" {

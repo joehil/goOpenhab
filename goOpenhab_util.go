@@ -141,3 +141,51 @@ func readJson(inJson string, field string) string {
 		return ""
 	}
 }
+
+func dimmerBrightness(device string, change int) string {
+	var brightness int = 127
+	if x, found := genVar.Pers.Get("!" + device); found {
+		brightness = x.(int)
+	}
+	brightness += change
+	if brightness < 0 {
+		brightness = 0
+	}
+	if brightness > 250 {
+		brightness = 250
+	}
+	genVar.Pers.Set("!"+device, brightness, cache.DefaultExpiration)
+	return fmt.Sprintf("%d", brightness)
+}
+
+func dimmerKnob(mInfo Msginfo, deviceName string, deviceAction string, dimmerDevice string, toDimDevice string) {
+	if mInfo.Msgobject == dimmerDevice {
+		debugLog(6, "Dimmer device:"+dimmerDevice+" newstate: "+mInfo.Msgnewstate+" action: "+deviceAction)
+		switch readJson(mInfo.Msgnewstate, deviceAction) {
+		case "single":
+			// switch light on half brightness
+			genVar.Mqttmsg <- Mqttparms{Topic: toDimDevice, Message: "{\"state\":\"ON\",\"brightness\":80}"}
+			debugLog(5, deviceName+" on, cozy")
+		case "double":
+			// switch light off
+			genVar.Mqttmsg <- Mqttparms{Topic: toDimDevice, Message: "{\"state\":\"OFF\"}"}
+			debugLog(5, deviceName+" off")
+		case "hold":
+			// switch light on full brightness
+			genVar.Mqttmsg <- Mqttparms{Topic: toDimDevice, Message: "{\"state\":\"ON\",\"brightness\":250}"}
+			debugLog(5, deviceName+" on, full")
+		case "rotate_right":
+			// make light brighter
+			br := dimmerBrightness(deviceName, 10)
+			genVar.Mqttmsg <- Mqttparms{Topic: toDimDevice, Message: "{\"brightness\":\"" + br + "\"}"}
+			debugLog(5, deviceName+" brighter")
+		case "rotate_left":
+			// make light less bright
+			br := dimmerBrightness(deviceName, -10)
+			genVar.Mqttmsg <- Mqttparms{Topic: toDimDevice, Message: "{\"brightness\":\"" + br + "\"}"}
+			debugLog(5, deviceName+" less bright")
+		default:
+		}
+		return
+	}
+}
