@@ -45,6 +45,16 @@ func processRulesInfo(mInfo Msginfo) {
 				var poti int
 				digiPot := getItemState("Digipot_Poti")
 				intDigiPot, _ := strconv.Atoi(digiPot)
+				if intDigiPot > 240 && flNew < float64(-50) {
+					// switch on laden_klein
+					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "ON"}
+					return
+				}
+				if intDigiPot < 80 && flNew > float64(0) {
+					// switch off laden_klein
+					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
+					return
+				}
 				var flPoti float64 = flNew * float64(-0.255)
 				poti = int(flPoti) + intDigiPot
 				if poti > 255 {
@@ -336,7 +346,7 @@ func calculateBatteryPrice(hour string) {
 
 	boolWeather := judgeWeather(4)
 	soc := getItemState("Solarakku_SOC")
-	zone := getItemState("Tibber_m1")
+	zone := getItemState("Tibber_avg7")
 	flZone, err := strconv.ParseFloat(zone, 64)
 	if err != nil {
 		flZone = float64(0.25)
