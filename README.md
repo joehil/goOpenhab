@@ -9,3 +9,16 @@ To install goOpenhab, you have to follow these steps:
 2. Clone this repository on your machine - or - download a source file
 3. Edit goOpenhab's config file
 4. Install goOpenhab as a service
+
+### Install golang
+
+
+### Clone goOpenhab
+
+### Download a source file
+
+
+### Edit goOpenhab's config file
+
+
+### Install goOpenhab as a service
