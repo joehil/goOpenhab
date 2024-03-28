@@ -11,7 +11,7 @@ To install goOpenhab, you have to follow these steps:
 4. Install goOpenhab as a service
 
 ### Install golang
-
+Open this [link](https://go.dev/dl/) and find out how golang can be installed on your machine.
 
 ### Clone goOpenhab
 
