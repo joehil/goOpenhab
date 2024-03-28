@@ -36,7 +36,7 @@ func processRulesInfo(mInfo Msginfo) {
 				inverter = 600
 			}
 			genVar.Pers.Set("Soyosource_Power_Value", fmt.Sprintf("%d", inverter), cache.DefaultExpiration)
-			log.Printf("Inverter: %d\n", inverter)
+			debugLog(5,fmt.Sprintf("Inverter: %d\n", inverter))
 			// genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: fmt.Sprintf("%d", inverter)}
 			genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Value: "state", Data: fmt.Sprintf("%d", inverter)}
 		} else {
@@ -48,12 +48,12 @@ func processRulesInfo(mInfo Msginfo) {
 				if intDigiPot > 240 && flNew < float64(-50) {
 					// switch on laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "ON"}
-					return
+//					return
 				}
 				if intDigiPot < 80 && flNew > float64(0) {
 					// switch off laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
-					return
+//					return
 				}
 				var flPoti float64 = flNew * float64(-0.255)
 				poti = int(flPoti) + intDigiPot
