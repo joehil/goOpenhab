@@ -14,6 +14,10 @@ To install goOpenhab, you have to follow these steps:
 Open this [link](https://go.dev/dl/) and find out how golang can be installed on your machine.
 
 ### Clone goOpenhab
+To clone this repository on your machine use this command (on linux):
+```
+git clone
+```
 
 ### Download a source file
 
