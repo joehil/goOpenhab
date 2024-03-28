@@ -16,7 +16,11 @@ Open this [link](https://go.dev/dl/) and find out how golang can be installed on
 ### Clone goOpenhab
 To clone this repository on your machine use this command (on linux):
 ```
-git clone
+git clone https://github.com/joehil/goOpenhab.git
+```
+Go to the cloned directory (called goOpenhab) and type in the following command:
+```
+go build
 ```
 
 ### Download a source file
