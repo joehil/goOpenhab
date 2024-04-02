@@ -29,7 +29,7 @@ func restApiGet(rin chan Requestin, rout chan string) {
 		resp, err := client.Do(req)
 		if err != nil {
 			traceLog(fmt.Sprintf("restapi get processing error: %v", err))
-			createMessage("restapi.processing.event", fmt.Sprintf("%v", err), "")
+			createMessage("restapi.processing.error.event", fmt.Sprintf("%v", err), "")
 
 		} else {
 
@@ -37,7 +37,7 @@ func restApiGet(rin chan Requestin, rout chan string) {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				traceLog(fmt.Sprintf("restapi get error reading response: %v", err))
-				createMessage("restapi.get.event", fmt.Sprintf("%v", err), "")
+				createMessage("restapi.get.error.event", fmt.Sprintf("%v", err), "")
 
 			} else {
 				// Gib den Response Body aus

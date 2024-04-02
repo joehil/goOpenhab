@@ -12,6 +12,7 @@ func timeTrigger() {
 	for secs != 0 {
 		time.Sleep(1 * time.Second)
 		_, _, secs = time.Now().Clock()
+		chronoCounter++
 	}
 	for {
 		var mInfo Msginfo
@@ -38,5 +39,10 @@ func timeTrigger() {
 			go processRulesInfo(mInfo)
 		}
 		old = counter
+		chronoCounter++
+
+		if hours == 11 && minutes == 1 {
+			return
+		}
 	}
 }

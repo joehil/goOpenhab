@@ -20,6 +20,8 @@ import (
 var do_trace bool = false
 var msg_trace bool = false
 var counter uint64 = 0
+var chronoCounter = 0
+var chronoOld = 0
 var logseverity int
 var pidfile string
 var ownlog string
@@ -140,8 +142,8 @@ func procRun() {
 	// Open log file
 	ownlogger := &lumberjack.Logger{
 		Filename:   ownlog,
-		MaxSize:    5, // megabytes
-		MaxBackups: 3,
+		MaxSize:    1, // megabytes
+		MaxBackups: 7,
 		MaxAge:     28,   //days
 		Compress:   true, // disabled by default
 	}
@@ -172,7 +174,14 @@ func procRun() {
 	traceLog("goOpenhab is up and running")
 
 	for {
-		time.Sleep(10 * time.Second)
+		time.Sleep(60 * time.Second)
+		if chronoCounter == chronoOld {
+			var mInfo Msginfo
+			mInfo.Msgevent = "watchdog.event"
+			mInfo.Msgobject = "Watchdog"
+			go processRulesInfo(mInfo)
+		}
+		chronoOld = chronoCounter
 	}
 }
 

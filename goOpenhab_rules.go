@@ -36,7 +36,7 @@ func processRulesInfo(mInfo Msginfo) {
 				inverter = 600
 			}
 			genVar.Pers.Set("Soyosource_Power_Value", fmt.Sprintf("%d", inverter), cache.DefaultExpiration)
-			debugLog(5,fmt.Sprintf("Inverter: %d\n", inverter))
+			debugLog(5, fmt.Sprintf("Inverter: %d\n", inverter))
 			// genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: fmt.Sprintf("%d", inverter)}
 			genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Value: "state", Data: fmt.Sprintf("%d", inverter)}
 		} else {
@@ -48,12 +48,12 @@ func processRulesInfo(mInfo Msginfo) {
 				if intDigiPot > 240 && flNew < float64(-50) {
 					// switch on laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "ON"}
-//					return
+					//					return
 				}
 				if intDigiPot < 80 && flNew > float64(0) {
 					// switch off laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
-//					return
+					//					return
 				}
 				var flPoti float64 = flNew * float64(-0.255)
 				poti = int(flPoti) + intDigiPot
@@ -247,17 +247,6 @@ func chronoEvents(mInfo Msginfo) {
 	}
 	debugLog(5, fmt.Sprint("cmd: ", cmd))
 	battery(cmd)
-
-	// this rule runs at minutes 1 and 6
-	if strings.ContainsAny(mInfo.Msgobject[4:5], "16") {
-		diff := wlanTraffic()
-		if diff == 0 {
-			log.Println("Network will be restarted")
-			restartNetwork()
-		} else {
-			log.Println("Network is running alright")
-		}
-	}
 
 	// this rule runs at minute 2
 	if strings.ContainsAny(mInfo.Msgobject[4:5], "2") {

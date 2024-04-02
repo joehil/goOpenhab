@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -57,38 +55,6 @@ func getItemState(item string) string {
 		//if answer != "" {
 		//	genVar.Pers.Set(item, answer, cache.DefaultExpiration)
 		//}
-	}
-	return answer
-}
-
-func wlanTraffic() int {
-	var answer int = 0
-	cmd := exec.Command("/usr/bin/sudo", "/usr/sbin/ifconfig", "-s", "wlan0")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println("error processing command ifconfig:", err)
-		return -99
-	}
-	//	fmt.Println("output of ifconfig:\n", out.String())
-	parts := strings.Split(out.String(), "\n")
-	if len(parts) > 0 {
-		//		fmt.Println(parts[1])
-		words := strings.Fields(parts[1])
-		//		fmt.Println("words ", len(words), words)
-		if len(words) > 5 {
-			rxNew := words[2]
-			txNew := words[6]
-			rxOld := getItemState("!WLANRX")
-			txOld := getItemState("!WLANTX")
-			fmt.Println("network values :", rxOld, txOld, rxNew, txNew)
-			if rxOld != rxNew || txOld != txNew {
-				answer = 1
-			}
-			genVar.Pers.Set("!WLANRX", rxNew, cache.DefaultExpiration)
-			genVar.Pers.Set("!WLANTX", txNew, cache.DefaultExpiration)
-		}
 	}
 	return answer
 }
