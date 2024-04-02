@@ -40,9 +40,5 @@ func timeTrigger() {
 		}
 		old = counter
 		chronoCounter++
-
-		if hours == 11 && minutes == 1 {
-			return
-		}
 	}
 }
