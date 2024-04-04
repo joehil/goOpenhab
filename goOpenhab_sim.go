@@ -3,15 +3,46 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/patrickmn/go-cache"
 )
 
 func simMsg() {
-	//	var mInfo Msginfo
+	var mInfo Msginfo
+
+	genVar.Pers = cache.New(3*time.Hour, 10*time.Hour)
+	traceLog("Persistence was initialized")
+
+	genVar.Telegram = make(chan string)
+
+	go sendTelegram(genVar.Telegram)
+	traceLog("Telegram interface was initialized")
+
+	genVar.Mqttmsg = make(chan Mqttparms, 5)
+
+	go publishMqtt(genVar.Mqttmsg)
+	traceLog("MQTT interface was initialized")
+
+	genVar.Getin = make(chan Requestin)
+	genVar.Getout = make(chan string)
+
+	go restApiGet(genVar.Getin, genVar.Getout)
+	traceLog("restapi get interface was initialized")
+
+	genVar.Postin = make(chan Requestin)
+
+	go restApiPost(genVar.Postin)
+	traceLog("restapi post interface was initialized")
+
+	go timeTrigger()
+	traceLog("chrono server was initialized")
 
 	// Open the CSV file
-	file, err := os.Open("yourfile.csv")
+	file, err := os.Open(dumpfile)
 	if err != nil {
 		fmt.Println("Error opening CSV file:", err)
 		return
@@ -29,42 +60,35 @@ func simMsg() {
 				fmt.Println("Warning: unexpected number of fields in line", err)
 				continue
 			}
-			if err != os.EOF { // Check if the end of file is reached
+			if err != io.EOF { // Check if the end of file is reached
 				fmt.Println("Error reading CSV data:", err)
 			}
 			break
 		}
 
 		// Process each field in the record
-		for i, field := range record {
-			fmt.Printf("Field %d: %s\n", i, field)
+		for _, rec := range record {
+			hours, minutes, seconds := time.Now().Clock()
+			currentTime := time.Now()
+			tdat := fmt.Sprintf("%04d-%02d-%02d",
+				currentTime.Year(),
+				currentTime.Month(),
+				currentTime.Day())
+			mInfo.Msgdate = tdat
+			mInfo.Msgtime = fmt.Sprintf("%02d:%02d:%02d.000", hours, minutes, seconds)
+			field := strings.Split(rec, ";")
+
+			mInfo.Msgevent = field[0]
+			mInfo.Msgobjtype = field[1]
+			mInfo.Msgobject = field[2]
+			mInfo.Msgoldstate = field[3]
+			mInfo.Msgnewstate = field[4]
+
+			fmt.Println("==>", mInfo)
+			go processRulesInfo(mInfo)
+			time.Sleep(time.Second)
+			counter++
 		}
 	}
-}
-
-func simMsgs() {
-	for {
-		var mInfo Msginfo
-		time.Sleep(1 * time.Minute)
-		hours, minutes, seconds := time.Now().Clock()
-
-		currentTime := time.Now()
-		tdat := fmt.Sprintf("%04d-%02d-%02d",
-			currentTime.Year(),
-			currentTime.Month(),
-			currentTime.Day())
-
-		mInfo.Msgdate = tdat
-		mInfo.Msgtime = fmt.Sprintf("%02d:%02d:%02d.000", hours, minutes, seconds)
-		mInfo.Msgevent = "chrono.event"
-		mInfo.Msgobject = fmt.Sprintf("%02d:%02d", hours, minutes)
-
-		msgLog(mInfo)
-		go processRulesInfo(mInfo)
-		debugLog(5, fmt.Sprintf("Watchdog counter: %d", counter))
-		mInfo.Msgevent = "watchdog.event"
-		mInfo.Msgobject = "Watchdog"
-		go processRulesInfo(mInfo)
-
-	}
+	fmt.Println("===== Simulation finished =====")
 }
