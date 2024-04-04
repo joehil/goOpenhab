@@ -96,6 +96,11 @@ func main() {
 			procRun()
 			os.Exit(0)
 		}
+		if a1 == "sim" {
+			read_config()
+			simMsg()
+			os.Exit(0)
+		}
 		fmt.Println("parameter invalid")
 		os.Exit(-1)
 	}
@@ -341,4 +346,5 @@ func myUsage() {
 	fmt.Println("mtraceon      Make running daemon switch it's message tracing on (useful for coding new rules)")
 	fmt.Println("mtraceoff     Make running daemon switch it's message tracing off")
 	fmt.Println("stop          Stop daemon")
+	fmt.Println("sim           Test rules by reading the dump file")
 }

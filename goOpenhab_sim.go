@@ -8,7 +8,7 @@ import (
 )
 
 func simMsg() {
-	var mInfo Msginfo
+	//	var mInfo Msginfo
 
 	// Open the CSV file
 	file, err := os.Open("yourfile.csv")
@@ -62,10 +62,9 @@ func simMsgs() {
 		msgLog(mInfo)
 		go processRulesInfo(mInfo)
 		debugLog(5, fmt.Sprintf("Watchdog counter: %d", counter))
-		if counter == old {
-			mInfo.Msgevent = "watchdog.event"
-			mInfo.Msgobject = "Watchdog"
-			go processRulesInfo(mInfo)
-		}
+		mInfo.Msgevent = "watchdog.event"
+		mInfo.Msgobject = "Watchdog"
+		go processRulesInfo(mInfo)
+
 	}
 }
