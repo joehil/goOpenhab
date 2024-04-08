@@ -293,6 +293,23 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"OFF\"}"}
 			log.Println("ZOE loading ended")
 		}
+		doPoessl := onOffByPrice("t3", mInfo.Msgobject)
+		if doPoessl {
+			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_2EF5C7/POWER1", Message: "on"}
+			log.Println("Poessl loading started")
+		} else {
+			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_2EF5C7/POWER1", Message: "off"}
+			log.Println("Poessl loading ended")
+		}
+		doWaschmaschine := onOffByPrice(getItemState("schalter_waschmaschine_zone"), mInfo.Msgobject)
+		if doWaschmaschine {
+			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "on"}
+			log.Println("Waschmaschine on")
+		} else {
+			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "off"}
+			log.Println("Waschmaschine off")
+		}
+
 		mt := getItemState("Tibber_t2")
 		//              ap := getItemState("curr_price")
 		flMt, _ := strconv.ParseFloat(mt, 64)
