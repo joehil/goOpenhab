@@ -48,12 +48,10 @@ func processRulesInfo(mInfo Msginfo) {
 				if intDigiPot > 240 && flNew < float64(-50) {
 					// switch on laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "ON"}
-					//					return
 				}
 				if intDigiPot < 80 && flNew > float64(0) {
 					// switch off laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
-					//					return
 				}
 				var flPoti float64 = flNew * float64(-0.255)
 				poti = int(flPoti) + intDigiPot
@@ -269,7 +267,7 @@ func chronoEvents(mInfo Msginfo) {
 			btLoad = "2"
 			log.Println("Battery Load on (zone)")
 		}
-		if (soc > "55.00" || flMt < flCp) && btLoad == "X" {
+		if (soc > "55.00" && btLoad == "1") || (flZone < flCp && btLoad == "2") {
 			btLoad = "0"
 			log.Println("Battery Load off")
 		}
@@ -309,12 +307,16 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "off"}
 			log.Println("Waschmaschine off")
 		}
-
-		mt := getItemState("Tibber_t2")
-		//              ap := getItemState("curr_price")
-		flMt, _ := strconv.ParseFloat(mt, 64)
-		flCp, _ := strconv.ParseFloat(ap, 64)
-		if flMt >= flCp {
+		doBoiler := onOffByPrice("t4", mInfo.Msgobject)
+		if doBoiler {
+			genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
+			log.Println("Boiler on")
+		} else {
+			genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "OFF"}
+			log.Println("Boiler off")
+		}
+		doLaden_klein := onOffByPrice("t2", mInfo.Msgobject)
+		if doLaden_klein {
 			genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "ON"}
 			log.Println("Laden_klein on")
 		} else {
