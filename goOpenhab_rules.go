@@ -91,6 +91,14 @@ func processRulesInfo(mInfo Msginfo) {
 		}
 	}
 
+	// send message if ZOE is loaded less than 45%
+	if len(mInfo.Msgobject) >= 26 {
+		if mInfo.Msgobject == "Renault_Car_Batterieladung" && mInfo.Msgnewstate < "45.0" {
+			log.Println(mInfo.Msgobject, mInfo.Msgnewstate)
+			genVar.Telegram <- "ZOE muss geladen werden (" + mInfo.Msgnewstate + "%)"
+		}
+	}
+
 	// store the SOC of our battery in cache
 	if mInfo.Msgobject == "Solarakku_SOC" {
 		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
@@ -118,22 +126,28 @@ func processRulesInfo(mInfo Msginfo) {
 	// inform about sunrise, perform actions
 	if (mInfo.Msgobject == "astro:sun:local:rise#event") &&
 		(mInfo.Msgnewstate == "END") {
-		genVar.Telegram <- "Sonnenaufgang"
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
-		debugLog(3, "Open Rolladen Gaste Seite")
-		debugLog(3, "Open Rolladen Gaste Vorne")
+		guest := getItemState("gast_switch")
+		if guest == "OFF" {
+			genVar.Telegram <- "Sonnenaufgang"
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
+			debugLog(3, "Open Rolladen Gaste Seite")
+			debugLog(3, "Open Rolladen Gaste Vorne")
+		}
 		return
 	}
 
 	// inform about sunset, perform actions
 	if (mInfo.Msgobject == "astro:sun:local:set#event") &&
 		(mInfo.Msgnewstate == "END") {
-		genVar.Telegram <- "Sonnenuntergang"
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"CLOSE\"}"}
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"CLOSE\"}"}
-		debugLog(3, "Close Rolladen Gaste Seite")
-		debugLog(3, "Close Rolladen Gaste Vorne")
+		guest := getItemState("gast_switch")
+		if guest == "OFF" {
+			genVar.Telegram <- "Sonnenuntergang"
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"CLOSE\"}"}
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"CLOSE\"}"}
+			debugLog(3, "Close Rolladen Gaste Seite")
+			debugLog(3, "Close Rolladen Gaste Vorne")
+		}
 		return
 	}
 
