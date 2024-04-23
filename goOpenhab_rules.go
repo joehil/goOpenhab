@@ -156,12 +156,24 @@ func processRulesInfo(mInfo Msginfo) {
 		switch mInfo.Msgnewstate {
 		case "1_single":
 			// Rolladen Gast Seite open
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
-			log.Println("Rolladen Gast Seite open")
+			move := getItemState("Rolladen_Gast_Seite_Moving")
+			if move == "STOP" {
+				genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
+				log.Println("Rolladen Gast Seite open")
+			} else {
+				genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"STOP\"}"}
+				log.Println("Rolladen Gast Seite stop")
+			}
 		case "2_single":
 			// Rolladen Gast Vorne open
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
-			log.Println("Rolladen Gast Seite open")
+			move := getItemState("Rolladen_Gast_vorne_Moving")
+			if move == "STOP" {
+				genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
+				log.Println("Rolladen Gast vorne open")
+			} else {
+				genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"STOP\"}"}
+				log.Println("Rolladen Gast vorne stop")
+			}
 		case "1_double":
 			// Rolladen Gast Seite close
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"CLOSE\"}"}
@@ -169,9 +181,11 @@ func processRulesInfo(mInfo Msginfo) {
 		case "2_double":
 			// Rolladen Gast Vorne close
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"CLOSE\"}"}
-			log.Println("Rolladen Gast Seite close")
+			log.Println("Rolladen Gast vorne close")
 		default:
+			return
 		}
+		genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Rolladen_Gast_Action", Data: "reset"}
 		return
 	}
 
