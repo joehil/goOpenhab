@@ -280,8 +280,17 @@ func chronoEvents(mInfo Msginfo) {
 	debugLog(5, fmt.Sprint("cmd: ", cmd))
 	battery(cmd)
 
-	// this rule runs at minute 2
-	if strings.ContainsAny(mInfo.Msgobject[4:5], "2") {
+	// emergency switch off
+	if mInfo.Msgobject == "00:00" || mInfo.Msgobject == "01:00" || mInfo.Msgobject == "02:00" {
+		log.Println("Switch lights off in living room")
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xf4b3b1fffef20459/l1/set", Message: "{\"state\":\"OFF\"}"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xf4b3b1fffef20459/l2/set", Message: "{\"state\":\"OFF\"}"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13843caca9572/set", Message: "{\"state\":\"OFF\"}"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138c1f0eacf1d/set", Message: "{\"state\":\"OFF\"}"}
+	}
+
+	// this rule runs at minutes ending at 2 and 7
+	if strings.ContainsAny(mInfo.Msgobject[4:5], "27") {
 		var btLoad string = "X"
 		mt := getItemState("Tibber_mintotal")
 		zone := getItemState("schalter_laden48_zone")
@@ -305,18 +314,17 @@ func chronoEvents(mInfo Msginfo) {
 			btLoad = "0"
 			log.Println("Battery Load off")
 		}
-		genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.DefaultExpiration)
+		debugLog(5, "BtLoad: "+btLoad)
+		if btLoad != "X" {
+			genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.DefaultExpiration)
+		}
 	}
 
 	// this rule runs at the first minute of each hour
 	if mInfo.Msgobject[3:5] == "00" {
 		setCurrentPrice(mInfo.Msgobject[0:2])
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
-		return
-	}
 
-	// this rule runs at the second minute of each hour
-	if mInfo.Msgobject[3:5] == "01" {
 		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
 		if doZoe {
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"ON\"}"}
