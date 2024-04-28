@@ -141,6 +141,9 @@ func procRun() {
 	go restApiPost(genVar.Postin)
 	traceLog("restapi post interface was initialized")
 
+	go getPvForecast()
+	traceLog("pv forecast interface was initialized")
+
 	go timeTrigger()
 	traceLog("chrono server was initialized")
 
@@ -307,6 +310,14 @@ func read_config() {
 	genVar.Resttoken = viper.GetString("rest_token")
 	dumpfile = viper.GetString("dump_file")
 	logseverity = viper.GetInt("log_severity")
+
+	genVar.PVurl = viper.GetString("pv_url")
+	genVar.PVApiToken = viper.GetString("pv_token")
+	genVar.PVlongitude = viper.GetString("pv_longitude")
+	genVar.PVlatitude = viper.GetString("pv_latitude")
+	genVar.PVdeclination = viper.GetString("pv_declination")
+	genVar.PVazimuth = viper.GetString("pv_azimuth")
+	genVar.PVkw = viper.GetString("pv_kw")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)

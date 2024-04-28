@@ -34,15 +34,22 @@ type Requestin struct {
 }
 
 type Generalvars struct {
-	Pers       *cache.Cache
-	Telegram   chan string
-	Tbtoken    string
-	Chatid     int64
-	Mqttmsg    chan Mqttparms
-	Mqttbroker string
-	Resturl    string
-	Resttoken  string
-	Getin      chan Requestin
-	Getout     chan string
-	Postin     chan Requestin
+	Pers          *cache.Cache
+	Telegram      chan string
+	Tbtoken       string
+	Chatid        int64
+	Mqttmsg       chan Mqttparms
+	Mqttbroker    string
+	Resturl       string
+	Resttoken     string
+	Getin         chan Requestin
+	Getout        chan string
+	Postin        chan Requestin
+	PVurl         string
+	PVApiToken    string
+	PVlongitude   string
+	PVlatitude    string
+	PVdeclination string
+	PVazimuth     string
+	PVkw          string
 }

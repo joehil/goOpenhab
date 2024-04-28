@@ -318,10 +318,11 @@ func chronoEvents(mInfo Msginfo) {
 		if btLoad != "X" {
 			genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.DefaultExpiration)
 		}
+		return
 	}
 
 	// this rule runs at the first minute of each hour
-	if mInfo.Msgobject[3:5] == "00" {
+	if (mInfo.Msgobject[3:5] == "00" && mInfo.Msgobject != "00:00") || mInfo.Msgobject == "00:05" {
 		setCurrentPrice(mInfo.Msgobject[0:2])
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
 
