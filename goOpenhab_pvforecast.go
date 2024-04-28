@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"time"
 )
 
@@ -49,6 +50,9 @@ type RateLimit struct {
 
 func getPvForecast() {
 	var requrl string
+
+	time.Sleep(30 * time.Second)
+
 	if genVar.PVApiToken == "" {
 		requrl = genVar.PVurl + "/estimate/" + genVar.PVlatitude + "/" + genVar.PVlongitude + "/" +
 			genVar.PVdeclination + "/" + genVar.PVazimuth + "/" + genVar.PVkw
@@ -92,9 +96,16 @@ func getPvForecast() {
 					createMessage("pvforecast.json.error.event", fmt.Sprintf("%v", err), "")
 				}
 
-				for date, wattHours := range data.Result.WattHoursDay {
-					debugLog(5, fmt.Sprintf("pvforecast watthours: %v %d", date, wattHours))
-					createMessage("pvforecast.watthours.event", date, fmt.Sprintf("%d", wattHours))
+				keys := make([]string, 0, len(data.Result.WattHoursDay))
+				for k := range data.Result.WattHoursDay {
+					keys = append(keys, k)
+				}
+				sort.Strings(keys)
+
+				for i, k := range keys {
+					fmt.Println(k, data.Result.WattHoursDay[k])
+					debugLog(5, fmt.Sprintf("pvforecast watthours: %d %d", i, data.Result.WattHoursDay[k]))
+					createMessage("pvforecast.watthours.event", fmt.Sprintf("%d", i), fmt.Sprintf("%d", data.Result.WattHoursDay[k]))
 				}
 			}
 

@@ -12,6 +12,8 @@ import (
 )
 
 func processRulesInfo(mInfo Msginfo) {
+	msgLog(mInfo)
+	debugLog(9, fmt.Sprintf("%s;%s;%s;%s;%s", mInfo.Msgevent, mInfo.Msgobjtype, mInfo.Msgobject, mInfo.Msgoldstate, mInfo.Msgnewstate))
 	if mInfo.Msgevent == "chrono.event" {
 		chronoEvents(mInfo)
 		return
@@ -126,6 +128,14 @@ func processRulesInfo(mInfo Msginfo) {
 	if mInfo.Msgobject == "Laden_48_EinAus" {
 		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
 		log.Println("Laden_48_EinAus stored: ", mInfo.Msgnewstate)
+		return
+	}
+
+	// store pv forecast in item
+	if mInfo.Msgevent == "pvforecast.watthours.event" {
+		genVar.Pers.Set("pv_forecast_"+mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
+		genVar.Postin <- Requestin{Node: "items", Item: "pv_forecast_" + mInfo.Msgobject, Data: mInfo.Msgnewstate}
+		log.Println("pv_forecast_"+mInfo.Msgobject, mInfo.Msgnewstate)
 		return
 	}
 

@@ -224,7 +224,6 @@ func procLine(msg string) {
 					mInfo.Msgnewstate = mes[2]
 				}
 			}
-			msgLog(mInfo)
 			processRulesInfo(mInfo)
 			counter++
 		}
