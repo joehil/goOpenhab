@@ -46,6 +46,7 @@ func processRulesInfo(mInfo Msginfo) {
 			if lEinAus == "ON" {
 				var poti int
 				digiPot := getItemState("Digipot_Poti")
+				debugLog(5, "String digipot: "+digiPot)
 				intDigiPot, _ := strconv.Atoi(digiPot)
 				if intDigiPot > 240 && flNew < float64(-50) {
 					// switch on laden_klein
@@ -74,10 +75,11 @@ func processRulesInfo(mInfo Msginfo) {
 						poti = 255
 					}
 				}
+				debugLog(5, fmt.Sprintf("Digipot old: %d new %d flNew %0.2f", intDigiPot, poti, flNew))
 				if intDigiPot != poti {
 					debugLog(5, fmt.Sprintf("Digipot setzen auf: %d", poti))
 					// genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
-					genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Value: "state", Data: fmt.Sprintf("%d", poti)}
+					genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: fmt.Sprintf("%d", poti)}
 					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.DefaultExpiration)
 				}
 			}
@@ -312,6 +314,13 @@ func chronoEvents(mInfo Msginfo) {
 		flCp, _ := strconv.ParseFloat(ap, 64)
 		flZone, _ := strconv.ParseFloat(zonePrice, 64)
 		debugLog(5, fmt.Sprintf("Zone price float: %0.4f", flZone))
+
+		x, found := genVar.Pers.Get("!BATTERYLOAD")
+		if found {
+			btLoad = x.(string)
+			debugLog(5, "!BATTERYLOAD: "+btLoad)
+		}
+
 		if soc < "44.00" && flMt >= flCp {
 			btLoad = "1"
 			log.Println("Battery Load on (emergency)")
