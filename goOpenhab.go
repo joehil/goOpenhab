@@ -117,7 +117,7 @@ func procRun() {
 	}
 	defer os.Remove(pidfile)
 
-	genVar.Pers = cache.New(3*time.Hour, 10*time.Hour)
+	genVar.Pers = cache.New(cache.NoExpiration, cache.NoExpiration)
 	traceLog("Persistence was initialized")
 
 	genVar.Telegram = make(chan string)
