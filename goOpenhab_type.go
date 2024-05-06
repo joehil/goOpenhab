@@ -52,4 +52,7 @@ type Generalvars struct {
 	PVdeclination string
 	PVazimuth     string
 	PVkw          string
+	machineNet    string
+	localNet      string
+	interNet      string
 }

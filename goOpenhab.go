@@ -144,6 +144,9 @@ func procRun() {
 	go getPvForecast()
 	traceLog("pv forecast interface was initialized")
 
+	go checkNetwork()
+	traceLog("network checking was initialized")
+
 	go timeTrigger()
 	traceLog("chrono server was initialized")
 
@@ -317,6 +320,9 @@ func read_config() {
 	genVar.PVdeclination = viper.GetString("pv_declination")
 	genVar.PVazimuth = viper.GetString("pv_azimuth")
 	genVar.PVkw = viper.GetString("pv_kw")
+	genVar.machineNet = viper.GetString("machine_net")
+	genVar.localNet = viper.GetString("local_net")
+	genVar.interNet = viper.GetString("inter_net")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)

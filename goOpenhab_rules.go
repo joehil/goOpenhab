@@ -480,6 +480,7 @@ func calculateBatteryPrice(hour string) {
 	log.Println("Bat-Price: ", price, hours)
 	log.Println(prices)
 	genVar.Pers.Set("!BAT_PRICE", price, cache.DefaultExpiration)
+        genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: price}
 }
 
 func battery(cmd string) {
