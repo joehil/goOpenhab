@@ -82,6 +82,8 @@ func processRulesInfo(mInfo Msginfo) {
 					genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: fmt.Sprintf("%d", poti)}
 					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.DefaultExpiration)
 				}
+			} else {
+				genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
 			}
 		}
 		return
@@ -480,7 +482,7 @@ func calculateBatteryPrice(hour string) {
 	log.Println("Bat-Price: ", price, hours)
 	log.Println(prices)
 	genVar.Pers.Set("!BAT_PRICE", price, cache.DefaultExpiration)
-        genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: price}
+	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: price}
 }
 
 func battery(cmd string) {
