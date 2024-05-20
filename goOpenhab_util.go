@@ -49,6 +49,7 @@ func getItemState(item string) string {
 	var answer string = ""
 	if x, found := genVar.Pers.Get(item); found {
 		answer = x.(string)
+		debugLog(6, "item state: "+answer)
 	} else {
 		genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
 		answer = <-genVar.Getout

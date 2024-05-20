@@ -245,6 +245,13 @@ func processRulesInfo(mInfo Msginfo) {
 			}
 		}
 	}
+
+	if mInfo.Msgevent == "network.availability.machine.event" && mInfo.Msgnewstate == "999" {
+		log.Println(mInfo.Msgevent, mInfo.Msgobject, mInfo.Msgnewstate)
+		reboot()
+		time.Sleep((5 * time.Second))
+		panic("Reboot started")
+	}
 }
 
 func chronoEvents(mInfo Msginfo) {
