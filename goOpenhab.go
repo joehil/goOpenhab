@@ -323,6 +323,10 @@ func read_config() {
 	genVar.machineNet = viper.GetString("machine_net")
 	genVar.localNet = viper.GetString("local_net")
 	genVar.interNet = viper.GetString("inter_net")
+	genVar.MMuserid = viper.GetString("meteomatics_userid")
+	genVar.MMpassw = viper.GetString("meteomatics_passw")
+	genVar.MMcountry = viper.GetString("meteomatics_country")
+	genVar.MMpostcode = viper.GetString("meteomatics_postcode")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)

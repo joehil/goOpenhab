@@ -55,4 +55,8 @@ type Generalvars struct {
 	machineNet    string
 	localNet      string
 	interNet      string
+	MMuserid      string
+	MMpassw       string
+	MMcountry     string
+	MMpostcode    string
 }

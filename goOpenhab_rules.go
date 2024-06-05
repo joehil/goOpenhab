@@ -45,14 +45,16 @@ func processRulesInfo(mInfo Msginfo) {
 			lEinAus := getItemState("Laden_48_EinAus")
 			if lEinAus == "ON" {
 				var poti int
+				soc := getItemState("Solarakku_SOC")
 				digiPot := getItemState("Digipot_Poti")
 				debugLog(5, "String digipot: "+digiPot)
+				debugLog(5, "String SOC: "+soc)
 				intDigiPot, _ := strconv.Atoi(digiPot)
-				if intDigiPot > 240 && flNew < float64(-50) {
+				if intDigiPot > 240 && flNew < float64(-50) && soc < "96" {
 					// switch on laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "ON"}
 				}
-				if intDigiPot < 80 && flNew > float64(0) {
+				if (intDigiPot < 80 && flNew > float64(0)) || soc >= "96" {
 					// switch off laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
 				}
@@ -74,6 +76,9 @@ func processRulesInfo(mInfo Msginfo) {
 					if x == "2" {
 						poti = 255
 					}
+				}
+				if soc >= "96" {
+					poti = 0
 				}
 				debugLog(5, fmt.Sprintf("Digipot old: %d new %d flNew %0.2f", intDigiPot, poti, flNew))
 				if intDigiPot != poti {
@@ -304,8 +309,8 @@ func chronoEvents(mInfo Msginfo) {
 	// emergency switch off
 	if mInfo.Msgobject == "00:00" || mInfo.Msgobject == "01:00" || mInfo.Msgobject == "02:00" {
 		log.Println("Switch lights off in living room")
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xf4b3b1fffef20459/l1/set", Message: "{\"state\":\"OFF\"}"}
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xf4b3b1fffef20459/l2/set", Message: "{\"state\":\"OFF\"}"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13874b6060fe9/set", Message: "{\"state_l1\":\"OFF\"}"}
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13874b6060fe9/set", Message: "{\"state_l2\":\"OFF\"}"}
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13843caca9572/set", Message: "{\"state\":\"OFF\"}"}
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138c1f0eacf1d/set", Message: "{\"state\":\"OFF\"}"}
 	}
@@ -346,6 +351,7 @@ func chronoEvents(mInfo Msginfo) {
 		if btLoad != "X" {
 			genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.DefaultExpiration)
 		}
+		getWeather()
 		return
 	}
 
@@ -353,6 +359,7 @@ func chronoEvents(mInfo Msginfo) {
 	if (mInfo.Msgobject[3:5] == "00" && mInfo.Msgobject != "00:00") || mInfo.Msgobject == "00:05" {
 		setCurrentPrice(mInfo.Msgobject[0:2])
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
+		getWeather()
 
 		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
 		if doZoe {
