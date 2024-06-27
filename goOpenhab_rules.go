@@ -50,13 +50,16 @@ func processRulesInfo(mInfo Msginfo) {
 				debugLog(5, "String digipot: "+digiPot)
 				debugLog(5, "String SOC: "+soc)
 				intDigiPot, _ := strconv.Atoi(digiPot)
-				if intDigiPot > 240 && flNew < float64(-50) {
+				x, found := genVar.Pers.Get("!LADEN_KLEIN")
+				if (intDigiPot > 240 && flNew < float64(-50)) || (found && x == "ON") || (soc >= "96" && flNew < float64(-50)) {
 					// switch on laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "ON"}
 				}
-				if intDigiPot < 80 && flNew > float64(0) {
-					// switch off laden_klein
-					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
+				if x != "ON" || !found {
+					if intDigiPot < 80 && flNew > float64(0) && soc < "96" {
+						// switch off laden_klein
+						genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
+					}
 				}
 				var flPoti float64 = flNew * float64(-0.255)
 				poti = int(flPoti) + intDigiPot
@@ -66,7 +69,7 @@ func processRulesInfo(mInfo Msginfo) {
 				if poti < 0 {
 					poti = 0
 				}
-				x, found := genVar.Pers.Get("!BATTERYLOAD")
+				x, found = genVar.Pers.Get("!BATTERYLOAD")
 				if found {
 					if x == "1" {
 						if poti < 127 {
@@ -396,12 +399,14 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "OFF"}
 			log.Println("Boiler off")
 		}
-		doLaden_klein := onOffByPrice("t2", mInfo.Msgobject)
+		doLaden_klein := onOffByPrice("mintotal", mInfo.Msgobject)
 		if doLaden_klein {
 			genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "ON"}
+			genVar.Pers.Set("!LADEN_KLEIN", "ON", cache.NoExpiration)
 			log.Println("Laden_klein on")
 		} else {
 			genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "OFF"}
+			genVar.Pers.Delete("!LADEN_KLEIN")
 			log.Println("Laden_klein off")
 		}
 		return
