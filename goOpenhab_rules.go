@@ -37,7 +37,7 @@ func processRulesInfo(mInfo Msginfo) {
 			if inverter > 600 {
 				inverter = 600
 			}
-			genVar.Pers.Set("Soyosource_Power_Value", fmt.Sprintf("%d", inverter), cache.DefaultExpiration)
+			genVar.Pers.Set("Soyosource_Power_Value", fmt.Sprintf("%d", inverter), cache.NoExpiration)
 			debugLog(5, fmt.Sprintf("Inverter: %d\n", inverter))
 			// genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: fmt.Sprintf("%d", inverter)}
 			genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Value: "state", Data: fmt.Sprintf("%d", inverter)}
@@ -50,11 +50,11 @@ func processRulesInfo(mInfo Msginfo) {
 				debugLog(5, "String digipot: "+digiPot)
 				debugLog(5, "String SOC: "+soc)
 				intDigiPot, _ := strconv.Atoi(digiPot)
-				if intDigiPot > 240 && flNew < float64(-50) && soc < "96" {
+				if intDigiPot > 240 && flNew < float64(-50) {
 					// switch on laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "ON"}
 				}
-				if (intDigiPot < 80 && flNew > float64(0)) || soc >= "96" {
+				if intDigiPot < 80 && flNew > float64(0) {
 					// switch off laden_klein
 					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
 				}
@@ -79,13 +79,14 @@ func processRulesInfo(mInfo Msginfo) {
 				}
 				if soc >= "96" {
 					poti = 0
+					battery("off")
 				}
 				debugLog(5, fmt.Sprintf("Digipot old: %d new %d flNew %0.2f", intDigiPot, poti, flNew))
 				if intDigiPot != poti {
 					debugLog(5, fmt.Sprintf("Digipot setzen auf: %d", poti))
 					// genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
 					genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: fmt.Sprintf("%d", poti)}
-					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.DefaultExpiration)
+					genVar.Pers.Set("Digipot_Poti", fmt.Sprintf("%d", poti), cache.NoExpiration)
 				}
 			} else {
 				genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
@@ -98,7 +99,7 @@ func processRulesInfo(mInfo Msginfo) {
 	if len(mInfo.Msgobject) >= 8 {
 		if mInfo.Msgobject[0:8] == "Tibber_t" || mInfo.Msgobject[0:8] == "Tibber_m" || mInfo.Msgobject[0:8] == "Tibber_n" {
 			log.Println(mInfo.Msgobject, mInfo.Msgnewstate)
-			genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
+			genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.NoExpiration)
 		}
 	}
 
@@ -118,14 +119,14 @@ func processRulesInfo(mInfo Msginfo) {
 
 	// store the SOC of our battery in cache
 	if mInfo.Msgobject == "Solarakku_SOC" {
-		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
+		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.NoExpiration)
 		log.Println("SOC stored: ", mInfo.Msgnewstate)
 		return
 	}
 
 	// store the state of soyosource switch in cache
 	if mInfo.Msgobject == "Soyosource_EinAus" {
-		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
+		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.NoExpiration)
 		log.Println("Soyosource_EinAus stored: ", mInfo.Msgnewstate)
 		if mInfo.Msgnewstate == "OFF" {
 			genVar.Mqttmsg <- Mqttparms{Topic: "inTopic", Message: "0"}
@@ -135,14 +136,14 @@ func processRulesInfo(mInfo Msginfo) {
 
 	// store the state of load_48 switch in cache
 	if mInfo.Msgobject == "Laden_48_EinAus" {
-		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
+		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.NoExpiration)
 		log.Println("Laden_48_EinAus stored: ", mInfo.Msgnewstate)
 		return
 	}
 
 	// store pv forecast in item
 	if mInfo.Msgevent == "pvforecast.watthours.event" {
-		genVar.Pers.Set("pv_forecast_"+mInfo.Msgobject, mInfo.Msgnewstate, cache.DefaultExpiration)
+		genVar.Pers.Set("pv_forecast_"+mInfo.Msgobject, mInfo.Msgnewstate, cache.NoExpiration)
 		genVar.Postin <- Requestin{Node: "items", Item: "pv_forecast_" + mInfo.Msgobject, Data: mInfo.Msgnewstate}
 		log.Println("pv_forecast_"+mInfo.Msgobject, mInfo.Msgnewstate)
 		return
@@ -349,9 +350,10 @@ func chronoEvents(mInfo Msginfo) {
 		}
 		debugLog(5, "BtLoad: "+btLoad)
 		if btLoad != "X" {
-			genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.DefaultExpiration)
+			genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.NoExpiration)
 		}
-		getWeather()
+		//		log.Println(getWeather())
+		//		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
 		return
 	}
 
@@ -359,7 +361,8 @@ func chronoEvents(mInfo Msginfo) {
 	if (mInfo.Msgobject[3:5] == "00" && mInfo.Msgobject != "00:00") || mInfo.Msgobject == "00:05" {
 		setCurrentPrice(mInfo.Msgobject[0:2])
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
-		getWeather()
+		log.Println(getWeather())
+		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
 
 		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
 		if doZoe {
@@ -412,10 +415,10 @@ func rulesInit() {
 	hour := now.Hour()
 	setCurrentPrice(fmt.Sprintf("%02d", hour))
 	sEinAus := getItemState("Soyosource_EinAus")
-	genVar.Pers.Set("Soyosource_EinAus", sEinAus, cache.DefaultExpiration)
+	genVar.Pers.Set("Soyosource_EinAus", sEinAus, cache.NoExpiration)
 	log.Println("Soyosource_EinAus stored: ", sEinAus)
 	lEinAus := getItemState("Laden_48_EinAus")
-	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.DefaultExpiration)
+	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.NoExpiration)
 	log.Println("Laden_48_EinAus stored: ", lEinAus)
 	calculateBatteryPrice(fmt.Sprintf("%02d", hour))
 }
@@ -495,7 +498,7 @@ func calculateBatteryPrice(hour string) {
 	}
 	log.Println("Bat-Price: ", price, hours)
 	log.Println(prices)
-	genVar.Pers.Set("!BAT_PRICE", price, cache.DefaultExpiration)
+	genVar.Pers.Set("!BAT_PRICE", price, cache.NoExpiration)
 	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: price}
 }
 
@@ -505,18 +508,18 @@ func battery(cmd string) {
 		// Soyosource off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
 		log.Println("Soyosource switched off")
-		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.DefaultExpiration)
+		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.NoExpiration)
 		genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Data: "0"}
 		// Loader-48 off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
 		log.Println("Laden_48 switched off")
 		genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: "0"}
-		genVar.Pers.Set("Digipot_Poti", "0", cache.DefaultExpiration)
+		genVar.Pers.Set("Digipot_Poti", "0", cache.NoExpiration)
 	case "load":
 		// Soyosource off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
 		log.Println("Soyosource switched off")
-		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.DefaultExpiration)
+		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.NoExpiration)
 		genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Data: "0"}
 		// Loader-48 on
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"ON\"}"}
@@ -525,7 +528,7 @@ func battery(cmd string) {
 		// Soyosource off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
 		log.Println("Soyosource switched off")
-		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.DefaultExpiration)
+		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.NoExpiration)
 		genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Data: "0"}
 		// Loader-48 on
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"ON\"}"}
@@ -535,7 +538,7 @@ func battery(cmd string) {
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
 		log.Println("Laden_48 switched off")
 		genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: "0"}
-		genVar.Pers.Set("Digipot_Poti", "0", cache.DefaultExpiration)
+		genVar.Pers.Set("Digipot_Poti", "0", cache.NoExpiration)
 		// Soyosource on
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"ON\"}"}
 		log.Println("Soyosource switched on")
@@ -543,13 +546,13 @@ func battery(cmd string) {
 		// Soyosource off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
 		log.Println("Soyosource switched off")
-		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.DefaultExpiration)
+		genVar.Pers.Set("Soyosource_Power_Value", "0", cache.NoExpiration)
 		genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Data: "0"}
 		// Loader-48 off
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138162567a379/set", Message: "{\"state\":\"OFF\"}"}
 		log.Println("Laden_48 switched off")
 		genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: "0"}
-		genVar.Pers.Set("Digipot_Poti", "0", cache.DefaultExpiration)
+		genVar.Pers.Set("Digipot_Poti", "0", cache.NoExpiration)
 	}
 }
 

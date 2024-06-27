@@ -8,7 +8,7 @@ import (
 	"github.com/twpayne/go-meteomatics"
 )
 
-func getWeather() {
+func getWeather() string {
 	var weather [17]string
 	weather[0] = "No weather"
 	weather[1] = "Clear sky"
@@ -27,6 +27,8 @@ func getWeather() {
 	weather[14] = "Thunderstorms"
 	weather[15] = "Drizzle"
 	weather[16] = "Sandstorm"
+
+	var retWeather string = ""
 
 	client := meteomatics.NewClient(
 		meteomatics.WithBasicAuth(
@@ -54,16 +56,18 @@ func getWeather() {
 	)
 	if err != nil {
 		log.Println(err)
-		return
+		return "<error>"
 	}
 
 	log.Println(cr.Parameters)
 	for _, row := range cr.Rows {
-		log.Println(row.ValidDate)
+		//	debugLog(6,row.ValidDate)
 		x := int(row.Values[0])
 		if x > 99 {
 			x -= 100
 		}
-		log.Println(weather[x])
+		debugLog(6, weather[x])
+		retWeather += ">" + weather[x]
 	}
+	return retWeather
 }
