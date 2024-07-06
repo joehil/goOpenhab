@@ -120,6 +120,22 @@ func processRulesInfo(mInfo Msginfo) {
 		}
 	}
 
+	// react to inverter temperature
+	if mInfo.Msgobject == "Balkonkraftwerk_Garage_balkonkraft_garage_temp" {
+		onOff := getItemState("garage_ventilator_garage_ventilator_onoff")
+		fltemp, _ := strconv.ParseFloat(mInfo.Msgnewstate, 64)
+		debugLog(5, fmt.Sprintf("Balkonkraftwerk_Garage_balkonkraft_garage_temp: %.1f", fltemp))
+		if fltemp > float64(38) && onOff == "OFF" {
+			genVar.Postin <- Requestin{Node: "items", Item: "garage_ventilator_garage_ventilator_onoff", Data: "ON"}
+			debugLog(5, "Garage_Ventilator on")
+		}
+		if fltemp < float64(30) && onOff == "ON" {
+			genVar.Postin <- Requestin{Node: "items", Item: "garage_ventilator_garage_ventilator_onoff", Data: "OFF"}
+			debugLog(5, "Garage_Ventilator off")
+		}
+		return
+	}
+
 	// store the SOC of our battery in cache
 	if mInfo.Msgobject == "Solarakku_SOC" {
 		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.NoExpiration)
@@ -281,7 +297,7 @@ func chronoEvents(mInfo Msginfo) {
 	flAp, _ := strconv.ParseFloat(ap, 64)
 	var flStrom float64 = flStromGarage + flStromBalkon
 	x, found := genVar.Pers.Get("!BAT_PRICE")
-	if found && flStrom < float64(100) && ladenSwitch == "OFF" {
+	if found && flStrom < float64(150) && ladenSwitch == "OFF" {
 		batPrice = x.(string)
 		log.Println("BAT_PRICE: ", batPrice)
 		flBatprice, _ := strconv.ParseFloat(batPrice, 64)
@@ -444,6 +460,9 @@ func calculateBatteryPrice(hour string) {
 	flZone, err := strconv.ParseFloat(zone, 64)
 	if err != nil {
 		flZone = float64(0.25)
+	}
+	if flZone > float64(0.30) {
+		flZone = float64(0.30)
 	}
 	flSoc, _ = strconv.ParseFloat(soc, 64)
 	flSoc -= 50
