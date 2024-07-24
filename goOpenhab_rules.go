@@ -271,6 +271,12 @@ func processRulesInfo(mInfo Msginfo) {
 		}
 	}
 
+	if mInfo.Msgobject == "Bewegungsmelder_1_EinAus" && mInfo.Msgnewstate == "ON" {
+		debugLog(5, "Bewegungsmelder Flur oben")
+		genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_oben", Data: "ON"}
+		return
+	}
+
 	if mInfo.Msgevent == "network.availability.machine.event" && mInfo.Msgnewstate == "999" {
 		log.Println(mInfo.Msgevent, mInfo.Msgobject, mInfo.Msgnewstate)
 		reboot()
