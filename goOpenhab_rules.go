@@ -45,7 +45,8 @@ func processRulesInfo(mInfo Msginfo) {
 			lEinAus := getItemState("Laden_48_EinAus")
 			if lEinAus == "ON" {
 				var poti int
-				soc := getItemState("Solarakku_SOC")
+				//	soc := getItemState("Solarakku_SOC")
+				soc := getSOCstr()
 				digiPot := getItemState("Digipot_Poti")
 				debugLog(5, "String digipot: "+digiPot)
 				debugLog(5, "String SOC: "+soc)
@@ -137,8 +138,8 @@ func processRulesInfo(mInfo Msginfo) {
 	}
 
 	// store the SOC of our battery in cache
-	if mInfo.Msgobject == "Solarakku_SOC" {
-		genVar.Pers.Set(mInfo.Msgobject, mInfo.Msgnewstate, cache.NoExpiration)
+	if mInfo.Msgobject == "Solarakku_SOC" || mInfo.Msgobject == "battery_can_SOC" {
+		genVar.Pers.Set("SOC", mInfo.Msgnewstate, cache.NoExpiration)
 		log.Println("SOC stored: ", mInfo.Msgnewstate)
 		return
 	}
@@ -271,7 +272,7 @@ func processRulesInfo(mInfo Msginfo) {
 		}
 	}
 
-	if mInfo.Msgobject == "Bewegungsmelder_1_EinAus" && mInfo.Msgnewstate == "ON" {
+	if (mInfo.Msgobject == "Bewegungsmelder_1_EinAus" || mInfo.Msgobject == "Bewegungsmelder_2_EinAus") && mInfo.Msgnewstate == "ON" {
 		debugLog(5, "Bewegungsmelder Flur oben")
 		genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_oben", Data: "ON"}
 		return
@@ -290,7 +291,8 @@ func chronoEvents(mInfo Msginfo) {
 	var batPrice string
 	var cmd string = "off"
 	ap := getItemState("curr_price")
-	soc := getItemState("Solarakku_SOC")
+	// soc := getItemState("Solarakku_SOC")
+	soc := getSOCstr()
 	stromGarage := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
 	stromBalkon := getItemState("Schalter_Balkon_Power")
 	genVar.Getin <- Requestin{Node: "items", Item: "Laden_48_EinAus", Value: "state"}
@@ -461,7 +463,8 @@ func calculateBatteryPrice(hour string) {
 	var hours int
 
 	boolWeather := judgeWeather(4)
-	soc := getItemState("Solarakku_SOC")
+	//soc := getItemState("Solarakku_SOC")
+	soc := getSOCstr()
 	zone := getItemState("Tibber_avg7")
 	flZone, err := strconv.ParseFloat(zone, 64)
 	if err != nil {
@@ -471,7 +474,8 @@ func calculateBatteryPrice(hour string) {
 		flZone = float64(0.30)
 	}
 	flSoc, _ = strconv.ParseFloat(soc, 64)
-	flSoc -= 50
+	// flSoc -= 50
+	flSoc -= 35
 	if flSoc < float64(0) {
 		hours = 0
 	} else {
@@ -632,4 +636,34 @@ func setCurrentPrice(h string) {
 	if answer != "" {
 		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
 	}
+}
+
+func getSOC() float64 {
+	SOC := float64(0)
+	x, found := genVar.Pers.Get("SOC")
+	if found {
+		soc, err := strconv.ParseFloat(x.(string), 64)
+		if err == nil {
+			SOC = soc
+		}
+	} else {
+		socstr := getItemState("battery_can_SOC")
+		soc, err := strconv.ParseFloat(socstr, 64)
+		if err == nil {
+			SOC = soc
+		}
+	}
+	return SOC
+}
+
+func getSOCstr() string {
+	SOC := string("00")
+	x, found := genVar.Pers.Get("SOC")
+	if found {
+		SOC = x.(string)
+	} else {
+		SOC = getItemState("battery_can_SOC")
+		genVar.Pers.Set("SOC", SOC, cache.NoExpiration)
+	}
+	return SOC
 }
