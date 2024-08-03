@@ -255,6 +255,22 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	// perform actions for pushbutton via MQTT
+	if mInfo.Msgobject == "zigbee2mqtt/0x187a3efffe0f5a35" {
+		switch readJson(mInfo.Msgnewstate, "action") {
+		case "1_single":
+			itemToggle("Lichtschalter_Flur_oben")
+		case "2_single":
+			itemToggle("Lichtschalter_Flur_EG")
+		case "3_single":
+			itemToggle("Wandschrank_1_EinAus")
+		case "4_single":
+			itemToggle("Wandschrank_2_EinAus")
+		default:
+		}
+		return
+	}
+
 	// MQTT pubhandler events
 	//	if mInfo.Msgevent == "mqtt.pubhandler.event" {
 	//		log.Println(mInfo.Msgevent, mInfo.Msgobject, readJson(mInfo.Msgnewstate, "action"))
@@ -666,4 +682,16 @@ func getSOCstr() string {
 		genVar.Pers.Set("SOC", SOC, cache.NoExpiration)
 	}
 	return SOC
+}
+
+func itemToggle(item string) {
+	var command string
+	genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
+	answer := <-genVar.Getout
+	if answer == "ON" {
+		command = "OFF"
+	} else {
+		command = "ON"
+	}
+	genVar.Postin <- Requestin{Node: "items", Item: item, Data: command}
 }
