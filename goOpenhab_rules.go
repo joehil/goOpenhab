@@ -325,7 +325,7 @@ func chronoEvents(mInfo Msginfo) {
 		batPrice = x.(string)
 		log.Println("BAT_PRICE: ", batPrice)
 		flBatprice, _ := strconv.ParseFloat(batPrice, 64)
-		if soc > "45.00" && flAp >= flBatprice {
+		if soc > "30.00" && flAp >= flBatprice {
 			cmd = "unload"
 		} else {
 			cmd = "off"
