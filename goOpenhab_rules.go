@@ -325,7 +325,7 @@ func chronoEvents(mInfo Msginfo) {
 		batPrice = x.(string)
 		log.Println("BAT_PRICE: ", batPrice)
 		flBatprice, _ := strconv.ParseFloat(batPrice, 64)
-		if soc > "30.00" && flAp >= flBatprice {
+		if soc > "22.00" && flAp >= flBatprice {
 			cmd = "unload"
 		} else {
 			cmd = "off"
@@ -379,7 +379,7 @@ func chronoEvents(mInfo Msginfo) {
 			debugLog(5, "!BATTERYLOAD: "+btLoad)
 		}
 
-		if soc < "44.00" && flMt >= flCp {
+		if soc < "21.00" && flMt >= flCp {
 			btLoad = "1"
 			log.Println("Battery Load on (emergency)")
 		}
@@ -387,7 +387,7 @@ func chronoEvents(mInfo Msginfo) {
 			btLoad = "2"
 			log.Println("Battery Load on (zone)")
 		}
-		if (soc > "55.00" && btLoad == "1") || (flZone < flCp && btLoad == "2") {
+		if (soc > "28.00" && btLoad == "1") || (flZone < flCp && btLoad == "2") {
 			btLoad = "0"
 			log.Println("Battery Load off")
 		}
@@ -491,7 +491,7 @@ func calculateBatteryPrice(hour string) {
 	}
 	flSoc, _ = strconv.ParseFloat(soc, 64)
 	// flSoc -= 50
-	flSoc -= 35
+	flSoc -= 28
 	if flSoc < float64(0) {
 		hours = 0
 	} else {
