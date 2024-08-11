@@ -294,11 +294,30 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	if mInfo.Msgobject == "Bewegungsmelder_3_EinAus" && mInfo.Msgnewstate == "ON" {
+		debugLog(5, "Bewegungsmelder Flur oben und EG")
+		genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_oben", Data: "ON"}
+		genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_EG", Data: "ON"}
+		return
+	}
+
 	if mInfo.Msgevent == "network.availability.machine.event" && mInfo.Msgnewstate == "999" {
 		log.Println(mInfo.Msgevent, mInfo.Msgobject, mInfo.Msgnewstate)
 		reboot()
 		time.Sleep((5 * time.Second))
 		panic("Reboot started")
+	}
+
+	if mInfo.Msgevent == "network.availability.internet.event" && mInfo.Msgnewstate == "999" {
+		log.Println(mInfo.Msgevent, mInfo.Msgobject, mInfo.Msgnewstate)
+		exec_cmd("/opt/homeautomation/fritzbox_reboot.sh")
+		return
+	}
+
+	if mInfo.Msgobject == "Network_Device_19216801_Pingzeit" {
+		log.Println(mInfo.Msgevent, mInfo.Msgobject, mInfo.Msgnewstate)
+		//	exec_cmd("/opt/homeautomation/fritzbox_reboot.sh")
+		return
 	}
 }
 
