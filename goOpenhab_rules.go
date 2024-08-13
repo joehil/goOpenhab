@@ -497,7 +497,8 @@ func calculateBatteryPrice(hour string) {
 	var flPrice float64
 	var hours int
 
-	boolWeather := judgeWeather(4)
+	//	boolWeather := judgeWeather(4)
+	boolWeather := judgePvForecast("2500")
 	//soc := getItemState("Solarakku_SOC")
 	soc := getSOCstr()
 	zone := getItemState("Tibber_avg7")
@@ -655,6 +656,17 @@ func judgeWeather(search int) bool {
 	intWeather, err := strconv.Atoi(weather)
 	if err == nil {
 		result = intWeather >= search
+	}
+	return result
+}
+
+func judgePvForecast(search string) bool {
+	var result bool = false
+	x, found := genVar.Pers.Get("pv_forecast_0")
+	if found {
+		if x.(string) < search {
+			result = true
+		}
 	}
 	return result
 }
