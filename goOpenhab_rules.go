@@ -295,9 +295,24 @@ func processRulesInfo(mInfo Msginfo) {
 	}
 
 	if mInfo.Msgobject == "Bewegungsmelder_3_EinAus" && mInfo.Msgnewstate == "ON" {
+		var pac float64 = 0
+		var guest string = "OFF"
 		debugLog(5, "Bewegungsmelder Flur oben und EG")
 		genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_oben", Data: "ON"}
-		genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_EG", Data: "ON"}
+		x, found := genVar.Pers.Get("!BalkonPAC")
+		if found {
+			flPac, err := strconv.ParseFloat(x.(string), 64)
+			if err == nil {
+				pac = flPac
+			}
+		}
+		x, found = genVar.Pers.Get("!GUEST")
+		if found {
+			guest = x.(string)
+		}
+		if pac < float64(50) || guest == "ON" {
+			genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_EG", Data: "ON"}
+		}
 		return
 	}
 
@@ -376,6 +391,16 @@ func chronoEvents(mInfo Msginfo) {
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13874b6060fe9/set", Message: "{\"state_l2\":\"OFF\"}"}
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13843caca9572/set", Message: "{\"state\":\"OFF\"}"}
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138c1f0eacf1d/set", Message: "{\"state\":\"OFF\"}"}
+	}
+
+	// reboot fritzbox every 2 days at 03.17
+	if mInfo.Msgobject == "03:17" {
+		d := time.Now()
+		day := d.Day()
+		if day%2 == 0 {
+			log.Println("Reboot Fritzbox")
+			exec_cmd("/opt/homeautomation/fritzbox_reboot.sh")
+		}
 	}
 
 	// this rule runs at minutes ending at 2 and 7
@@ -468,6 +493,11 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Pers.Delete("!LADEN_KLEIN")
 			log.Println("Laden_klein off")
 		}
+		pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
+		genVar.Pers.Set("!BalkonPAC", pac, cache.NoExpiration)
+		guest := getItemState("gast_switch")
+		genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
+
 		return
 	}
 }
@@ -485,6 +515,12 @@ func rulesInit() {
 	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.NoExpiration)
 	log.Println("Laden_48_EinAus stored: ", lEinAus)
 	calculateBatteryPrice(fmt.Sprintf("%02d", hour))
+	pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
+	genVar.Pers.Set("!BalkonPAC", pac, cache.NoExpiration)
+	log.Println("BalkonPAC stored: ", pac)
+	guest := getItemState("gast_switch")
+	genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
+	log.Println("Guest stored: ", guest)
 }
 
 // special funtions as a support to make relatively short rules
