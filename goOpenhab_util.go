@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -154,5 +155,50 @@ func dimmerKnob(mInfo Msginfo, deviceName string, deviceAction string, dimmerDev
 		default:
 		}
 		return
+	}
+}
+
+func setItemAlarmTime(item string, alarmtime int) {
+	var name string = "!ALARM_" + item
+	d := time.Now().Unix() + int64(alarmtime)
+	//	genVar.Pers.Delete(name)
+	genVar.Pers.Set(name, fmt.Sprintf("%d", d), cache.DefaultExpiration)
+}
+
+func checkItemAlarm(item string) bool {
+	var name string = "!ALARM_" + item
+	var answer bool = false
+	d := time.Now().Unix()
+	var tim string
+	var alarm int64
+	if x, found := genVar.Pers.Get(name); found {
+		tim = x.(string)
+		al, err := strconv.ParseInt(tim, 10, 64)
+		if err != nil {
+			alarm = d
+		} else {
+			alarm = al
+		}
+	}
+
+	if d > alarm {
+		answer = true
+	}
+	return answer
+}
+
+func iterateAlarms() {
+	debugLog(7, "iterateAlarms")
+	alarms := genVar.Pers.Items()
+	for k, v := range alarms {
+		if len(k) >= 7 {
+			if k[0:7] == "!ALARM_" {
+				if checkItemAlarm(k[7:]) {
+					log.Printf("key[%s] value[%v]\n", k[7:], v)
+					genVar.Telegram <- k
+					genVar.Pers.Delete(k)
+				}
+			}
+		}
 	}
 }

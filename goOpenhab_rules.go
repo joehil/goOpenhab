@@ -334,6 +334,14 @@ func processRulesInfo(mInfo Msginfo) {
 		//	exec_cmd("/opt/homeautomation/fritzbox_reboot.sh")
 		return
 	}
+
+	if len(mInfo.Msgobject) >= 8 {
+		if mInfo.Msgobject[0:8] == "Heizung_" {
+			debugLog(7, "Alarm set for "+mInfo.Msgobject)
+			setItemAlarmTime(mInfo.Msgobject, 600)
+			return
+		}
+	}
 }
 
 func chronoEvents(mInfo Msginfo) {
@@ -383,6 +391,8 @@ func chronoEvents(mInfo Msginfo) {
 	}
 	debugLog(5, fmt.Sprint("cmd: ", cmd))
 	battery(cmd)
+
+	iterateAlarms()
 
 	// emergency switch off
 	if mInfo.Msgobject == "00:00" || mInfo.Msgobject == "01:00" || mInfo.Msgobject == "02:00" {
