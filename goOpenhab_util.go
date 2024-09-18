@@ -122,7 +122,7 @@ func dimmerBrightness(device string, change int) string {
 	if brightness > 250 {
 		brightness = 250
 	}
-	genVar.Pers.Set("!"+device, brightness, cache.DefaultExpiration)
+	genVar.Pers.Set("!"+device, brightness, cache.NoExpiration)
 	return fmt.Sprintf("%d", brightness)
 }
 
@@ -160,9 +160,13 @@ func dimmerKnob(mInfo Msginfo, deviceName string, deviceAction string, dimmerDev
 
 func setItemAlarmTime(item string, alarmtime int) {
 	var name string = "!ALARM_" + item
+	var recovery string = "!RECOVERY_" + item
 	d := time.Now().Unix() + int64(alarmtime)
 	//	genVar.Pers.Delete(name)
-	genVar.Pers.Set(name, fmt.Sprintf("%d", d), cache.DefaultExpiration)
+	genVar.Pers.Set(name, fmt.Sprintf("%d", d), cache.NoExpiration)
+	if _, found := genVar.Pers.Get(recovery); found {
+		genVar.Telegram <- recovery
+	}
 }
 
 func checkItemAlarm(item string) bool {
@@ -193,10 +197,12 @@ func iterateAlarms() {
 	for k, v := range alarms {
 		if len(k) >= 7 {
 			if k[0:7] == "!ALARM_" {
-				if checkItemAlarm(k[7:]) {
-					log.Printf("key[%s] value[%v]\n", k[7:], v)
+				item := k[7:]
+				if checkItemAlarm(item) {
+					log.Printf("key[%s] value[%v]\n", item, v)
 					genVar.Telegram <- k
 					genVar.Pers.Delete(k)
+					genVar.Pers.Set("!RECOVERY_"+item, "0", cache.NoExpiration)
 				}
 			}
 		}

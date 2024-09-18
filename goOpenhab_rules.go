@@ -338,7 +338,7 @@ func processRulesInfo(mInfo Msginfo) {
 	if len(mInfo.Msgobject) >= 8 {
 		if mInfo.Msgobject[0:8] == "Heizung_" {
 			debugLog(7, "Alarm set for "+mInfo.Msgobject)
-			setItemAlarmTime(mInfo.Msgobject, 600)
+			setItemAlarmTime(mInfo.Msgobject, 900)
 			return
 		}
 	}
