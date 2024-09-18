@@ -166,6 +166,7 @@ func setItemAlarmTime(item string, alarmtime int) {
 	genVar.Pers.Set(name, fmt.Sprintf("%d", d), cache.NoExpiration)
 	if _, found := genVar.Pers.Get(recovery); found {
 		genVar.Telegram <- recovery
+		genVar.Pers.Delete(recovery)
 	}
 }
 
