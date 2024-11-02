@@ -271,10 +271,48 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
-	// MQTT pubhandler events
-	//	if mInfo.Msgevent == "mqtt.pubhandler.event" {
-	//		log.Println(mInfo.Msgevent, mInfo.Msgobject, readJson(mInfo.Msgnewstate, "action"))
-	//	}
+	// MQTT LoRa events
+	if len(mInfo.Msgobject) >= 18 {
+		if mInfo.Msgevent == "mqtt.pubhandler.event" &&
+			mInfo.Msgobject[0:18] == "LoRa2MQTT/outTopic" {
+			//			log.Println(mInfo.Msgevent, mInfo.Msgobject, mInfo.Msgnewstate)
+			erg := strings.Split(mInfo.Msgobject, "/")
+			if erg[2] == "200" && erg[3] == "11" {
+				ttemp, err := strconv.ParseFloat(mInfo.Msgnewstate, 64)
+				if err == nil {
+					stemp := fmt.Sprintf("%.2f", ttemp/100)
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_oben_temperatur", Data: stemp}
+				}
+			}
+			if erg[2] == "200" && erg[3] == "80" {
+				if mInfo.Msgnewstate[0:1] == "N" {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_bad", Data: "ON"}
+				} else {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_bad", Data: "OFF"}
+				}
+				if mInfo.Msgnewstate[1:2] == "N" {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_gaestezimmer", Data: "ON"}
+				} else {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_gaestezimmer", Data: "OFF"}
+				}
+				if mInfo.Msgnewstate[2:3] == "N" {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_brigitte", Data: "ON"}
+				} else {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_brigitte", Data: "OFF"}
+				}
+				if mInfo.Msgnewstate[3:4] == "N" {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_schlafzimmer", Data: "ON"}
+				} else {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_schlafzimmer", Data: "OFF"}
+				}
+				if mInfo.Msgnewstate[4:5] == "N" {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_joerg", Data: "ON"}
+				} else {
+					genVar.Postin <- Requestin{Node: "items", Item: "heizung_joerg", Data: "OFF"}
+				}
+			}
+		}
+	}
 
 	// log internal events (restapi, mqtt, watchdog)
 	if len(mInfo.Msgevent) >= 8 {
@@ -335,6 +373,15 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	if mInfo.Msgobject == "Lichtschalter_Buro_Jorg" {
+		if mInfo.Msgnewstate == "ON" {
+			setItemOffTime(mInfo.Msgobject, 300)
+		} else {
+			setItemOffTime(mInfo.Msgobject, 0)
+		}
+		return
+	}
+
 	if len(mInfo.Msgobject) >= 8 {
 		if mInfo.Msgobject[0:8] == "Heizung_" {
 			debugLog(7, "Alarm set for "+mInfo.Msgobject)
@@ -392,6 +439,7 @@ func chronoEvents(mInfo Msginfo) {
 	debugLog(5, fmt.Sprint("cmd: ", cmd))
 	battery(cmd)
 
+	iterateOffs()
 	iterateAlarms()
 
 	// emergency switch off
@@ -517,6 +565,8 @@ func chronoEvents(mInfo Msginfo) {
 func rulesInit() {
 	now := time.Now()
 	hour := now.Hour()
+	exec_cmd("/opt/homeautomation/tibber2mqtt", "reinit")
+	time.Sleep(time.Second)
 	setCurrentPrice(fmt.Sprintf("%02d", hour))
 	sEinAus := getItemState("Soyosource_EinAus")
 	genVar.Pers.Set("Soyosource_EinAus", sEinAus, cache.NoExpiration)

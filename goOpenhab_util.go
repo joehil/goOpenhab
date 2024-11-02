@@ -209,3 +209,52 @@ func iterateAlarms() {
 		}
 	}
 }
+
+func setItemOffTime(item string, offtime int) {
+	var name string = "!OFF_" + item
+	d := time.Now().Unix() + int64(offtime)
+	if offtime > 0 {
+		genVar.Pers.Set(name, fmt.Sprintf("%d", d), cache.NoExpiration)
+	} else {
+		genVar.Pers.Delete(name)
+	}
+}
+
+func checkItemOff(item string) bool {
+	var name string = "!OFF_" + item
+	var answer bool = false
+	d := time.Now().Unix()
+	var tim string
+	var off int64
+	if x, found := genVar.Pers.Get(name); found {
+		tim = x.(string)
+		al, err := strconv.ParseInt(tim, 10, 64)
+		if err != nil {
+			off = d
+		} else {
+			off = al
+		}
+	}
+
+	if d > off {
+		answer = true
+	}
+	return answer
+}
+
+func iterateOffs() {
+	debugLog(7, "iterateOffs")
+	offs := genVar.Pers.Items()
+	for k, v := range offs {
+		if len(k) >= 5 {
+			if k[0:5] == "!OFF_" {
+				item := k[5:]
+				if checkItemOff(item) {
+					log.Printf("key[%s] value[%v]\n", item, v)
+					genVar.Postin <- Requestin{Node: "items", Item: item, Data: "OFF"}
+					genVar.Pers.Delete(k)
+				}
+			}
+		}
+	}
+}
