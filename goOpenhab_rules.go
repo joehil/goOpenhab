@@ -24,6 +24,14 @@ func processRulesInfo(mInfo Msginfo) {
 		var flInverter float64
 		flNew, _ := strconv.ParseFloat(mInfo.Msgnewstate, 64)
 		sEinAus := getItemState("Soyosource_EinAus")
+		if flNew > 1400 && sEinAus == "ON" {
+			sEinAus = "OFF"
+			// Soyosource off
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138af90599d6a/set", Message: "{\"state\":\"OFF\"}"}
+			log.Println("Soyosource switched off")
+			genVar.Pers.Set("Soyosource_Power_Value", "0", cache.NoExpiration)
+			genVar.Postin <- Requestin{Node: "items", Item: "Soyosource_Power_Value", Data: "0"}
+		}
 		if sEinAus == "ON" {
 			var inverter int
 			strInverter := getItemState("Soyosource_Power_Value")
@@ -285,6 +293,14 @@ func processRulesInfo(mInfo Msginfo) {
 				}
 			}
 			if erg[2] == "200" && erg[3] == "80" {
+				var hOben string = "IIIII"
+				x, found := genVar.Pers.Get("!HEIZUNG_OBEN")
+				if found {
+					hOben = x.(string)
+				}
+				if mInfo.Msgnewstate[0:5] != hOben {
+					genVar.Mqttmsg <- Mqttparms{Topic: "LoRa2MQTT/inTopic/200/80/1", Message: hOben}
+				}
 				if mInfo.Msgnewstate[0:1] == "N" {
 					genVar.Postin <- Requestin{Node: "items", Item: "heizung_bad", Data: "ON"}
 				} else {
@@ -312,6 +328,16 @@ func processRulesInfo(mInfo Msginfo) {
 				}
 			}
 		}
+	}
+
+	if mInfo.Msgobject == "BadThermometer_Bad_Temperature" {
+		setHeating("heizung_bad", mInfo.Msgnewstate)
+	}
+	if mInfo.Msgobject == "ObergeschossThermometer_Guest_Temperature" {
+		setHeating("heizung_gaestezimmer", mInfo.Msgnewstate)
+	}
+	if mInfo.Msgobject == "Thermometer_Buero_Temperature" {
+		setHeating("heizung_brigitte", mInfo.Msgnewstate)
 	}
 
 	// log internal events (restapi, mqtt, watchdog)
@@ -414,14 +440,15 @@ func chronoEvents(mInfo Msginfo) {
 		batPrice = x.(string)
 		log.Println("BAT_PRICE: ", batPrice)
 		flBatprice, _ := strconv.ParseFloat(batPrice, 64)
-		if soc > "22.00" && flAp >= flBatprice {
+		if soc > "22.00" && flAp >= flBatprice && flAs < float64(1400) {
 			cmd = "unload"
 		} else {
 			cmd = "off"
 		}
 	}
 
-	if (flStrom > float64(120) && ladenSwitch == "OFF" && flAs < float64(-50)) || (ladenSwitch == "ON" && flAs < float64(50)) ||
+	if (flStrom > float64(120) && ladenSwitch == "OFF" && flAs < float64(-50)) ||
+		(ladenSwitch == "ON" && flAs < float64(50)) ||
 		flAp < float64(0.19) {
 		cmd = "load"
 	}
@@ -581,6 +608,7 @@ func rulesInit() {
 	guest := getItemState("gast_switch")
 	genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
 	log.Println("Guest stored: ", guest)
+	genVar.Pers.Set("!HEIZUNG_OBEN", "NNNNN", cache.NoExpiration)
 }
 
 // special funtions as a support to make relatively short rules
@@ -598,6 +626,9 @@ func calculateBatteryPrice(hour string) {
 	//soc := getItemState("Solarakku_SOC")
 	soc := getSOCstr()
 	zone := getItemState("Tibber_avg7")
+	if zone == "0" {
+		zone = getItemState("Tibber_m1")
+	}
 	flZone, err := strconv.ParseFloat(zone, 64)
 	if err != nil {
 		flZone = float64(0.25)
@@ -821,4 +852,57 @@ func itemToggle(item string) {
 		command = "ON"
 	}
 	genVar.Postin <- Requestin{Node: "items", Item: item, Data: command}
+}
+
+func setHeating(item string, istate string) {
+	var hOben string = "IIIII"
+	x, found := genVar.Pers.Get("!HEIZUNG_OBEN")
+	if found {
+		hOben = x.(string)
+	}
+
+	c := strings.Split(hOben, "")
+
+	temp, err := strconv.ParseFloat(istate, 64)
+	if err == nil {
+		switch item {
+		case "heizung_bad":
+			if temp < float64(18) {
+				c[0] = "N"
+			} else {
+				c[0] = "F"
+			}
+		case "heizung_gaestezimmer":
+			if temp < float64(16) {
+				c[1] = "N"
+			} else {
+				c[1] = "F"
+			}
+		case "heizung_brigitte":
+			if temp < float64(16) {
+				c[2] = "N"
+			} else {
+				c[2] = "F"
+			}
+		case "heizung_schlafzimmer":
+			if temp < float64(17.5) {
+				c[3] = "N"
+			} else {
+				c[3] = "F"
+			}
+		case "heizung_joerg":
+			if temp < float64(16) {
+				c[4] = "N"
+			} else {
+				c[4] = "F"
+			}
+		default:
+		}
+	}
+
+	hOben = strings.Join(c, "")
+
+	log.Printf("hOben: %s\n", hOben)
+
+	genVar.Pers.Set("!HEIZUNG_OBEN", hOben, cache.NoExpiration)
 }
