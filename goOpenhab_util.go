@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os/exec"
 	"strconv"
 	"time"
@@ -256,5 +257,15 @@ func iterateOffs() {
 				}
 			}
 		}
+	}
+}
+
+func setFHEM(device string, value string) {
+	requestURL := fmt.Sprintf("http://192.168.0.211:8083/fhem?cmd=set%%20%s%%20%s", device, value)
+	log.Println(requestURL)
+	_, err := http.Get(requestURL)
+	//	_, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	if err != nil {
+		log.Printf("client: could not create request: %s\n", err)
 	}
 }

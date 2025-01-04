@@ -38,7 +38,7 @@ func restApiGet(rin chan Requestin, rout chan string) {
 			if err != nil {
 				traceLog(fmt.Sprintf("restapi get error reading response: %v", err))
 				createMessage("restapi.get.error.event", fmt.Sprintf("%v", err), "")
-
+				genVar.Telegram <- "goOpenhab restapi error: " + fmt.Sprintf("%v", err)
 			} else {
 				// Gib den Response Body aus
 				debugLog(5, fmt.Sprintf("restapi get received response: %v", string(body)))

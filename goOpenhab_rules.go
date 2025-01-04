@@ -335,9 +335,20 @@ func processRulesInfo(mInfo Msginfo) {
 	}
 	if mInfo.Msgobject == "ObergeschossThermometer_Guest_Temperature" {
 		setHeating("heizung_gaestezimmer", mInfo.Msgnewstate)
+		setFHEM("T_Julia", mInfo.Msgnewstate)
 	}
 	if mInfo.Msgobject == "Thermometer_Buero_Temperature" {
 		setHeating("heizung_brigitte", mInfo.Msgnewstate)
+		setFHEM("T_Buero", mInfo.Msgnewstate)
+	}
+	if mInfo.Msgobject == "Thermometer_WC_Temperature" {
+		setFHEM("T_Klo", mInfo.Msgnewstate)
+	}
+	if mInfo.Msgobject == "FHEM_Thermometer_Joerg" {
+		setHeating("heizung_joerg", mInfo.Msgnewstate)
+	}
+	if mInfo.Msgobject == "FHEM_Thermometer_Schlafzimmer" {
+		setHeating("heizung_schlafzimmer", mInfo.Msgnewstate)
 	}
 
 	// log internal events (restapi, mqtt, watchdog)
@@ -440,7 +451,7 @@ func chronoEvents(mInfo Msginfo) {
 		batPrice = x.(string)
 		log.Println("BAT_PRICE: ", batPrice)
 		flBatprice, _ := strconv.ParseFloat(batPrice, 64)
-		if soc > "22.00" && flAp >= flBatprice && flAs < float64(1400) {
+		if (soc > "22.00" || soc == "100") && flAp >= flBatprice && flAs < float64(1400) {
 			cmd = "unload"
 		} else {
 			cmd = "off"
@@ -466,8 +477,8 @@ func chronoEvents(mInfo Msginfo) {
 	debugLog(5, fmt.Sprint("cmd: ", cmd))
 	battery(cmd)
 
-	iterateOffs()
-	iterateAlarms()
+	go iterateOffs()
+	go iterateAlarms()
 
 	// emergency switch off
 	if mInfo.Msgobject == "00:00" || mInfo.Msgobject == "01:00" || mInfo.Msgobject == "02:00" {
@@ -508,11 +519,11 @@ func chronoEvents(mInfo Msginfo) {
 			debugLog(5, "!BATTERYLOAD: "+btLoad)
 		}
 
-		if soc < "21.00" && flMt >= flCp {
+		if soc < "21.00" && soc != "100" && flMt >= flCp {
 			btLoad = "1"
 			log.Println("Battery Load on (emergency)")
 		}
-		if flZone >= flCp {
+		if onOffByPrice(zone, mInfo.Msgobject) {
 			btLoad = "2"
 			log.Println("Battery Load on (zone)")
 		}
@@ -524,8 +535,6 @@ func chronoEvents(mInfo Msginfo) {
 		if btLoad != "X" {
 			genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.NoExpiration)
 		}
-		//		log.Println(getWeather())
-		//		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
 		return
 	}
 
@@ -561,6 +570,7 @@ func chronoEvents(mInfo Msginfo) {
 			log.Println("Waschmaschine off")
 		}
 		doBoiler := onOffByPrice("t4", mInfo.Msgobject)
+		//doBoiler := onOffByPrice("m1", mInfo.Msgobject)
 		if doBoiler {
 			genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
 			log.Println("Boiler on")
@@ -584,6 +594,24 @@ func chronoEvents(mInfo Msginfo) {
 		genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
 
 		return
+	}
+
+	// this rule runs at minutes ending at 1
+	if strings.ContainsAny(mInfo.Msgobject[4:5], "1") {
+		gast := getItemState("FHEM_Gast_da")
+		log.Println("Gast:", gast[0:2])
+		if gast[0:2] == "ja" {
+			log.Println("Im Gast")
+			heiz := getItemState("FHEM_Heizung_Julia")
+			log.Println("Heizung:", heiz[0:2])
+			if heiz[0:2] == "on" {
+				genVar.Postin <- Requestin{Node: "items", Item: "Hilfsheizung_Hilfsheizung_Gaestezimmer", Value: "state", Data: "ON"}
+			} else {
+				genVar.Postin <- Requestin{Node: "items", Item: "Hilfsheizung_Hilfsheizung_Gaestezimmer", Value: "state", Data: "OFF"}
+			}
+		} else {
+			genVar.Postin <- Requestin{Node: "items", Item: "Hilfsheizung_Hilfsheizung_Gaestezimmer", Value: "state", Data: "OFF"}
+		}
 	}
 }
 
@@ -609,6 +637,21 @@ func rulesInit() {
 	genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
 	log.Println("Guest stored: ", guest)
 	genVar.Pers.Set("!HEIZUNG_OBEN", "NNNNN", cache.NoExpiration)
+
+	tZoe_zone := getItemState("schalter_zoe_zone")
+	if tZoe_zone == "" || tZoe_zone == "NULL" {
+		genVar.Postin <- Requestin{Node: "items", Item: "schalter_zoe_zone", Data: "t10"}
+	}
+	tLaden48_zone := getItemState("schalter_laden48_zone")
+	if tLaden48_zone == "" || tLaden48_zone == "NULL" {
+		genVar.Postin <- Requestin{Node: "items", Item: "schalter_laden48_zone", Data: "t5"}
+	}
+	tWaschmaschine_zone := getItemState("schalter_waschmaschine_zone")
+	if tWaschmaschine_zone == "" || tWaschmaschine_zone == "NULL" {
+		genVar.Postin <- Requestin{Node: "items", Item: "schalter_waschmaschine_zone", Data: "maxtotal"}
+	}
+
+	genVar.Telegram <- "goOpenhab initialized"
 }
 
 // special funtions as a support to make relatively short rules
@@ -809,6 +852,8 @@ func setCurrentPrice(h string) {
 	log.Println(answer)
 	if answer != "" {
 		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
+	} else {
+		genVar.Telegram <- "goOpenhab current price not set"
 	}
 }
 
@@ -891,7 +936,7 @@ func setHeating(item string, istate string) {
 				c[3] = "F"
 			}
 		case "heizung_joerg":
-			if temp < float64(16) {
+			if temp < float64(18.5) {
 				c[4] = "N"
 			} else {
 				c[4] = "F"
