@@ -30,6 +30,8 @@ var topics []string
 var timeOld time.Time
 var dumpfile string
 var dfile *os.File
+var doorlockSecrets []int
+var doorlockTags []string
 
 var genVar Generalvars
 
@@ -150,6 +152,9 @@ func procRun() {
 	go timeTrigger()
 	traceLog("chrono server was initialized")
 
+	go connect2Doorlock(doorlockSecrets, doorlockTags)
+	traceLog("doorlock server was initialized")
+
 	// Open log file
 	ownlogger := &lumberjack.Logger{
 		Filename:   ownlog,
@@ -198,7 +203,7 @@ func procRun() {
 
 func procLine(msg string) {
 	var mInfo Msginfo
-	var mWarn Msgwarn
+	//	var mWarn Msgwarn
 	if len(msg) > 75 {
 		msgType := msg[25:29]
 		if msgType == "INFO" {
@@ -230,12 +235,12 @@ func procLine(msg string) {
 			processRulesInfo(mInfo)
 			counter++
 		}
-		if msgType == "WARN" {
-			mWarn.Msgdate = msg[0:10]
-			mWarn.Msgtime = msg[11:23]
-			mWarn.Msgevent = msg[33:69]
-			mWarn.Msgtext = msg[73:]
-		}
+		/*		if msgType == "WARN" {
+				mWarn.Msgdate = msg[0:10]
+				mWarn.Msgtime = msg[11:23]
+				mWarn.Msgevent = msg[33:69]
+				mWarn.Msgtext = msg[73:]
+			} */
 	}
 }
 
@@ -327,6 +332,9 @@ func read_config() {
 	genVar.MMpassw = viper.GetString("meteomatics_passw")
 	genVar.MMcountry = viper.GetString("meteomatics_country")
 	genVar.MMpostcode = viper.GetString("meteomatics_postcode")
+
+	doorlockSecrets = viper.GetIntSlice("doorlock_secrets")
+	doorlockTags = viper.GetStringSlice("doorlock_tags")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)

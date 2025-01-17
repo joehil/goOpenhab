@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -649,6 +650,11 @@ func rulesInit() {
 	tWaschmaschine_zone := getItemState("schalter_waschmaschine_zone")
 	if tWaschmaschine_zone == "" || tWaschmaschine_zone == "NULL" {
 		genVar.Postin <- Requestin{Node: "items", Item: "schalter_waschmaschine_zone", Data: "maxtotal"}
+	}
+
+	if hour == 23 {
+		os.Remove("/tmp/tibberN.json")
+		os.Remove("/tmp/tibberT.json")
 	}
 
 	genVar.Telegram <- "goOpenhab initialized"
