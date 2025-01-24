@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
@@ -119,6 +120,19 @@ func procRun() {
 	}
 	defer os.Remove(pidfile)
 
+	debug.SetTraceback("all")
+
+	// Open log file
+	ownlogger := &lumberjack.Logger{
+		Filename:   ownlog,
+		MaxSize:    1, // megabytes
+		MaxBackups: 7,
+		MaxAge:     28,   //days
+		Compress:   true, // disabled by default
+	}
+	defer ownlogger.Close()
+	log.SetOutput(ownlogger)
+
 	genVar.Pers = cache.New(cache.NoExpiration, cache.NoExpiration)
 	traceLog("Persistence was initialized")
 
@@ -154,17 +168,6 @@ func procRun() {
 
 	go connect2Doorlock(doorlockSecrets, doorlockTags)
 	traceLog("doorlock server was initialized")
-
-	// Open log file
-	ownlogger := &lumberjack.Logger{
-		Filename:   ownlog,
-		MaxSize:    1, // megabytes
-		MaxBackups: 7,
-		MaxAge:     28,   //days
-		Compress:   true, // disabled by default
-	}
-	defer ownlogger.Close()
-	log.SetOutput(ownlogger)
 
 	// Inform about trace
 	log.Println("Trace set to: ", do_trace)
@@ -343,6 +346,7 @@ func read_config() {
 		log.Println("Rest url: ", genVar.Resturl)
 		log.Println("Dumpfile: ", dumpfile)
 		log.Println("Logseverity: ", logseverity)
+		log.Printf("Size of doorlock_secrets: %d\n", len(doorlockSecrets))
 
 		for i, v := range logs {
 			log.Printf("Index: %d, Value: %v\n", i, v)
@@ -354,7 +358,7 @@ func read_config() {
 }
 
 func tailLog(logFile string) {
-	t, err := tail.TailFile(logFile, tail.Config{Follow: true})
+	t, err := tail.TailFile(logFile, tail.Config{Follow: true, ReOpen: true})
 	if err != nil {
 		panic(err)
 	}
