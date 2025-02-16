@@ -490,18 +490,6 @@ func chronoEvents(mInfo Msginfo) {
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138c1f0eacf1d/set", Message: "{\"state\":\"OFF\"}"}
 	}
 
-	// heating off
-	if mInfo.Msgobject == "22:03" {
-		log.Println("Switch heating off")
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x00124b002226d03a/set", Message: "{\"state_l1\":\"OFF\"}"}
-	}
-
-	// heating on
-	if mInfo.Msgobject == "05:57" {
-		log.Println("Switch heating on")
-		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x00124b002226d03a/set", Message: "{\"state_l1\":\"OFF\"}"}
-	}
-
 	// reboot fritzbox every 2 days at 03.17
 	if mInfo.Msgobject == "03:17" {
 		d := time.Now()

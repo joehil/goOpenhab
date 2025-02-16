@@ -169,6 +169,9 @@ func procRun() {
 	go connect2Doorlock(doorlockSecrets, doorlockTags)
 	traceLog("doorlock server was initialized")
 
+	go desiredState()
+	traceLog("desiredState server was initialized")
+
 	// Inform about trace
 	log.Println("Trace set to: ", do_trace)
 
