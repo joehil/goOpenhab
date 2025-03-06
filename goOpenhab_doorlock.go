@@ -11,7 +11,7 @@ import (
 var rNum [10]byte
 var rNumber int
 
-func connect2Doorlock(secrets []int, tags []string) {
+func connect2Doorlock(secrets []int, tags []string, pwds []string) {
 	for {
 		creKey()
 		genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/cls", Message: "X"}
@@ -27,7 +27,23 @@ func connect2Doorlock(secrets []int, tags []string) {
 					crypted := xcrypt(decoded, secrets)
 					strcrypted := string(crypted)
 					strrnum := string(rNum[:])
-					genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/add", Message: strrnum + strcrypted}
+					genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/tag/add", Message: strrnum + strcrypted}
+				}
+			}
+			time.Sleep(time.Second)
+		}
+		for _, element := range pwds {
+			strs := strings.Split(element, ";")
+			if len(strs[0]) == 29 {
+				apwd := strings.ReplaceAll(strs[0], ":", "")
+				decoded, err := hex.DecodeString(apwd)
+				if err != nil {
+					log.Fatal(err)
+				} else {
+					crypted := xcrypt(decoded, secrets)
+					strcrypted := string(crypted)
+					strrnum := string(rNum[:])
+					genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/pwd/add", Message: strrnum + strcrypted}
 				}
 			}
 			time.Sleep(time.Second)

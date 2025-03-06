@@ -33,6 +33,7 @@ var dumpfile string
 var dfile *os.File
 var doorlockSecrets []int
 var doorlockTags []string
+var doorlockPwds []string
 
 var genVar Generalvars
 
@@ -166,7 +167,7 @@ func procRun() {
 	go timeTrigger()
 	traceLog("chrono server was initialized")
 
-	go connect2Doorlock(doorlockSecrets, doorlockTags)
+	go connect2Doorlock(doorlockSecrets, doorlockTags, doorlockPwds)
 	traceLog("doorlock server was initialized")
 
 	go desiredState()
@@ -341,6 +342,7 @@ func read_config() {
 
 	doorlockSecrets = viper.GetIntSlice("doorlock_secrets")
 	doorlockTags = viper.GetStringSlice("doorlock_tags")
+	doorlockPwds = viper.GetStringSlice("doorlock_pwds")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)

@@ -427,6 +427,23 @@ func processRulesInfo(mInfo Msginfo) {
 			return
 		}
 	}
+
+	if mInfo.Msgobject == "desiredState/in" {
+		log.Println(mInfo.Msgobject + " : " + mInfo.Msgnewstate)
+		vrs := strings.Split(mInfo.Msgnewstate, ":")
+		if len(vrs) == 1 {
+			vrs[1] = ""
+		}
+		log.Println(vrs)
+		putState(vrs[0], vrs[1])
+		return
+	}
+
+	if mInfo.Msgobject == "check_joehil_Last_Failure" {
+		log.Println(mInfo.Msgobject + " : " + mInfo.Msgnewstate)
+		genVar.Telegram <- "Verbindung zu joehil.de verloren"
+		return
+	}
 }
 
 func chronoEvents(mInfo Msginfo) {
