@@ -33,19 +33,10 @@ func connect2Doorlock(secrets []int, tags []string, pwds []string) {
 			time.Sleep(time.Second)
 		}
 		for _, element := range pwds {
-			strs := strings.Split(element, ";")
-			if len(strs[0]) == 29 {
-				apwd := strings.ReplaceAll(strs[0], ":", "")
-				decoded, err := hex.DecodeString(apwd)
-				if err != nil {
-					log.Fatal(err)
-				} else {
-					crypted := xcrypt(decoded, secrets)
-					strcrypted := string(crypted)
-					strrnum := string(rNum[:])
-					genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/pwd/add", Message: strrnum + strcrypted}
-				}
-			}
+			crypted := xcrypt([]byte(element), secrets)
+			strcrypted := string(crypted)
+			strrnum := string(rNum[:])
+			genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/pwd/add", Message: strrnum + strcrypted}
 			time.Sleep(time.Second)
 		}
 
