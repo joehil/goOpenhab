@@ -280,6 +280,16 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	// MQTT doorlock events
+	if len(mInfo.Msgobject) >= 12 {
+		if mInfo.Msgobject[0:9] == "doorlock/" && mInfo.Msgobject[0:12] != "doorlock/in/" {
+			log.Println(mInfo.Msgobject, mInfo.Msgnewstate)
+		}
+		if mInfo.Msgobject == "doorlock/message" && mInfo.Msgnewstate == "TAG: door opened" {
+			recordVideo("http://192.168.0.168:81/stream", "15")
+		}
+	}
+
 	// MQTT LoRa events
 	if len(mInfo.Msgobject) >= 18 {
 		if mInfo.Msgevent == "mqtt.pubhandler.event" &&
@@ -508,7 +518,7 @@ func chronoEvents(mInfo Msginfo) {
 	}
 
 	// reboot fritzbox every 2 days at 03.17
-/*	if mInfo.Msgobject == "03:17" {
+	/*	if mInfo.Msgobject == "03:17" {
 		d := time.Now()
 		day := d.Day()
 		if day%2 == 0 {
@@ -668,14 +678,14 @@ func rulesInit() {
 	if tWaschmaschine_zone == "" || tWaschmaschine_zone == "NULL" {
 		genVar.Postin <- Requestin{Node: "items", Item: "schalter_waschmaschine_zone", Data: "maxtotal"}
 	}
-        doBoiler := onOffByPrice("t4", fmt.Sprintf("%0d",hour))
-        if doBoiler {
-                genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
-                log.Println("Boiler on")
-        } else {
-                genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "OFF"}
-                log.Println("Boiler off")
-        }
+	doBoiler := onOffByPrice("t4", fmt.Sprintf("%0d", hour))
+	if doBoiler {
+		genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
+		log.Println("Boiler on")
+	} else {
+		genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "OFF"}
+		log.Println("Boiler off")
+	}
 
 	if hour == 23 {
 		os.Remove("/tmp/tibberN.json")
