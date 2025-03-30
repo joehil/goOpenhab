@@ -58,22 +58,22 @@ func main() {
 				log.Fatal(err)
 			}
 			s := string(b)
-			fmt.Println("Reload", s)
+			fmt.Println("reload")
 			cmd := exec.Command("kill", "-hup", s)
 			_ = cmd.Start()
 			os.Exit(0)
 		}
-		if a1 == "mtraceon" {
-			b, err := os.ReadFile(pidfile)
-			if err != nil {
-				log.Fatal(err)
-			}
-			s := string(b)
-			fmt.Println("MsgTraceOn")
-			cmd := exec.Command("kill", "-10", s)
-			_ = cmd.Start()
-			os.Exit(0)
-		}
+                if a1 == "mtraceon" {
+                        b, err := os.ReadFile(pidfile)
+                        if err != nil {
+                                log.Fatal(err)
+                        }
+                        s := string(b)
+                        fmt.Println("reload")
+                        cmd := exec.Command("kill", "-10", s)
+                        _ = cmd.Start()
+                        os.Exit(0)
+                }
 		if a1 == "mtraceoff" {
 			b, err := os.ReadFile(pidfile)
 			if err != nil {
@@ -167,7 +167,7 @@ func procRun() {
 	go timeTrigger()
 	traceLog("chrono server was initialized")
 
-	go connect2Doorlock(doorlockSecrets, doorlockTags, doorlockPwds)
+	go connect2Doorlock(doorlockSecrets, &doorlockTags, &doorlockPwds)
 	traceLog("doorlock server was initialized")
 
 	go desiredState()
