@@ -1,3 +1,15 @@
+/*
+publishMqtt establishes a connection to an MQTT broker and continuously publishes messages
+from a channel to specified topics. It handles connection events and attempts to reconnect
+if the connection is lost.
+
+Parameters:
+- mess: A channel of Mqttparms containing the topic and message to be published.
+
+The function sets up MQTT client options, subscribes to topics, and publishes messages
+received from the channel. It also includes handlers for message publishing, connection
+establishment, and connection loss with reconnection logic.
+*/
 package main
 
 import (
@@ -40,7 +52,12 @@ func publishMqtt(mess chan Mqttparms) {
 		message = inmsg.Message
 		token := client.Publish(topic, byte(qos), false, message)
 		token.Wait()
-		debugLog(5, fmt.Sprintf("Message published to topic %s: %s", topic, message))
+		if token.Error() != nil {
+			traceLog(fmt.Sprintf("Failed to publish message to topic %s: %v", topic, token.Error()))
+			createMessage("mqtt.publish.error", topic, fmt.Sprintf("%v", token.Error()))
+		} else {
+			debugLog(5, fmt.Sprintf("Message published to topic %s: %s", topic, message))
+		}
 		time.Sleep(1 * time.Second)
 	}
 }

@@ -1,3 +1,19 @@
+/*
+connect2Doorlock manages the connection to a door lock system by periodically
+sending encrypted tags and passwords via MQTT messages.
+
+Parameters:
+- secrets: A slice of integers used for encryption.
+- tags: A pointer to a slice of strings representing tags to be processed.
+- pwds: A pointer to a slice of strings representing passwords to be processed.
+
+The function runs indefinitely, checking every minute if the current minute is
+a multiple of 15. If so, it generates a new encryption key, sends a close
+command to the door lock, and processes each tag and password by encrypting
+them and sending them as MQTT messages. The function uses the current time to
+determine if a tag should be processed based on its specified active hours and
+days.
+*/
 package main
 
 import (
@@ -34,10 +50,13 @@ func connect2Doorlock(secrets []int, tags *[]string, pwds *[]string) {
 					if err != nil {
 						log.Fatal(err)
 					} else {
+						var comment string = fmt.Sprintf("%-10s", strs[3])
+						log.Printf("Transfered tag: >%s<\n", comment)
 						crypted := xcrypt(decoded, secrets)
 						strcrypted := string(crypted)
 						strrnum := string(rNum[:])
-						genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/tag/add", Message: strrnum + strcrypted}
+						strcomment := xcrypt([]byte(comment), secrets)
+						genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/tag/add", Message: strrnum + strcrypted + string(strcomment)}
 					}
 				}
 				time.Sleep(time.Second)
