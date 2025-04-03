@@ -288,6 +288,8 @@ func processRulesInfo(mInfo Msginfo) {
 		if len(mInfo.Msgnewstate) >= 16 {
 			if mInfo.Msgobject == "doorlock/message" && mInfo.Msgnewstate[0:16] == "TAG: door opened" {
 				recordVideo("http://192.168.0.168:81/stream", "15")
+				genVar.Telegram <- mInfo.Msgnewstate
+				return
 			}
 		}
 	}
