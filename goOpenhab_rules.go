@@ -250,7 +250,7 @@ func processRulesInfo(mInfo Msginfo) {
 	// perform actions dimmer knob via MQTT
 	dimmerKnob(mInfo, "WZDIMMER2", "action", "zigbee2mqtt/0xa4c138672aa2c651", "zigbee2mqtt/0xf4b3b1fffef20459/l2/set")
 
-	// perform actions for pushbutton via MQTT
+	// perform actions for pushbutton Joerg via MQTT
 	if mInfo.Msgobject == "zigbee2mqtt/0x00158d000893ac30" {
 		switch readJson(mInfo.Msgnewstate, "action") {
 		case "single":
@@ -259,6 +259,18 @@ func processRulesInfo(mInfo Msginfo) {
 			// switch light on in our bedroom
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13855c794f2f9/set", Message: "{\"state\":\"TOGGLE\"}"}
 			log.Println("Toggle bedroom light")
+		default:
+		}
+		return
+	}
+
+	// perform actions for pushbutton Brigitte via MQTT
+	if mInfo.Msgobject == "zigbee2mqtt/0xa4c13805a991149c" {
+		switch readJson(mInfo.Msgnewstate, "action") {
+		case "single":
+			itemToggle("Lichtschalter_Flur_oben")
+		case "double":
+		case "hold":
 		default:
 		}
 		return
@@ -434,6 +446,15 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	if mInfo.Msgobject == "Inverter_klein_Power" {
+		flPower, _ := strconv.ParseFloat(mInfo.Msgnewstate, 64)
+		if flPower > 90 && flPower < 100 {
+			genVar.Postin <- Requestin{Node: "items", Item: "Inverter_klein_EinAus", Data: "OFF"}
+			log.Println(mInfo.Msgobject, mInfo.Msgnewstate)
+		}
+		return
+	}
+
 	if len(mInfo.Msgobject) >= 8 {
 		if mInfo.Msgobject[0:8] == "Heizung_" {
 			debugLog(7, "Alarm set for "+mInfo.Msgobject)
@@ -484,7 +505,11 @@ func chronoEvents(mInfo Msginfo) {
 		log.Println("BAT_PRICE: ", batPrice)
 		flBatprice, _ := strconv.ParseFloat(batPrice, 64)
 		if (soc > "22.00" || soc == "100") && flAp >= flBatprice && flAs < float64(1400) {
-			cmd = "unload"
+			if flAs > float64(1400) && soc < "55" {
+				cmd = "off"
+			} else {
+				cmd = "unload"
+			}
 		} else {
 			cmd = "off"
 		}
@@ -650,6 +675,11 @@ func chronoEvents(mInfo Msginfo) {
 // rules that are called when goOpenhab initializes
 
 func rulesInit() {
+	uptime, _ := getSystemUptime()
+	log.Printf("Uptime: %f\n", uptime)
+	if uptime < 300 {
+		time.Sleep(time.Second * time.Duration(300-uptime))
+	}
 	now := time.Now()
 	hour := now.Hour()
 	exec_cmd("/opt/homeautomation/tibber2mqtt", "reinit")

@@ -63,17 +63,17 @@ func main() {
 			_ = cmd.Start()
 			os.Exit(0)
 		}
-                if a1 == "mtraceon" {
-                        b, err := os.ReadFile(pidfile)
-                        if err != nil {
-                                log.Fatal(err)
-                        }
-                        s := string(b)
-                        fmt.Println("reload")
-                        cmd := exec.Command("kill", "-10", s)
-                        _ = cmd.Start()
-                        os.Exit(0)
-                }
+		if a1 == "mtraceon" {
+			b, err := os.ReadFile(pidfile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			s := string(b)
+			fmt.Println("reload")
+			cmd := exec.Command("kill", "-10", s)
+			_ = cmd.Start()
+			os.Exit(0)
+		}
 		if a1 == "mtraceoff" {
 			b, err := os.ReadFile(pidfile)
 			if err != nil {

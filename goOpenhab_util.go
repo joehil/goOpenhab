@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -268,4 +270,17 @@ func setFHEM(device string, value string) {
 	if err != nil {
 		log.Printf("client: could not create request: %s\n", err)
 	}
+}
+
+// getSystemUptime returns the system uptime in seconds (Linux only)
+func getSystemUptime() (float64, error) {
+	data, err := os.ReadFile("/proc/uptime")
+	if err != nil {
+		return 0, err
+	}
+	fields := strings.Fields(string(data))
+	if len(fields) < 1 {
+		return 0, fmt.Errorf("unexpected content in /proc/uptime")
+	}
+	return strconv.ParseFloat(fields[0], 64)
 }
