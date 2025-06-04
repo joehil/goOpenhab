@@ -7,15 +7,33 @@ import (
 	_ "github.com/lib/pq"
 )
 
+func sanitizeMessage(msg string) string {
+	// Implement sanitization logic as needed
+	return msg
+}
+
 func sendTelegram(msg chan string) {
+	bot, err := tgbotapi.NewBotAPI(genVar.Tbtoken)
+	if err != nil {
+		fmt.Printf("Telegram error: %v\n", err)
+		return
+	}
 	for {
-		//		message := <-msg
-		bot, err := tgbotapi.NewBotAPI(genVar.Tbtoken)
-		if err != nil {
-			fmt.Printf("Telegram error: %v\n", err)
-			return
+		select {
+		case rawMsg := <-msg:
+			sanitizedMsg := sanitizeMessage(rawMsg)
+			if len(sanitizedMsg) == 0 || len(sanitizedMsg) > 4096 {
+				continue // skip empty or too long messages
+			}
+			m := tgbotapi.NewMessage(genVar.Chatid, sanitizedMsg)
+			if _, err := bot.Send(m); err != nil {
+				fmt.Printf("Failed to send Telegram message: %v\n", err)
+				bot, err = tgbotapi.NewBotAPI(genVar.Tbtoken)
+				if err != nil {
+					fmt.Printf("Telegram error: %v\n", err)
+				}
+				bot.Send(m)
+			}
 		}
-		m := tgbotapi.NewMessage(genVar.Chatid, <-msg)
-		bot.Send(m)
 	}
 }

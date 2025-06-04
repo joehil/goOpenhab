@@ -101,7 +101,7 @@ func desiredState() {
 }
 
 func initObjects() {
-	objs["Schalter_Waermepumpe_EinAus"] = desState{"ON", ""}
+	// objs["Schalter_Waermepumpe_EinAus"] = desState{"ON", ""}
 }
 
 func getdState(key string) string {

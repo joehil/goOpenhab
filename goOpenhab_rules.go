@@ -244,6 +244,29 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	if mInfo.Msgobject == "Schalter_Rolladen_Bad_schalter_rolladen_bad_action" {
+		switch mInfo.Msgnewstate {
+		case "single":
+			// Rolladen Bad Seite open
+			move := getItemState("Rolladen_Bad_rolladen_bad_moving")
+			if move == "STOP" {
+				genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138a53a4a83d4/set", Message: "{\"state\":\"OPEN\"}"}
+				log.Println("Rolladen Bad open")
+			} else {
+				genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138a53a4a83d4/set", Message: "{\"state\":\"STOP\"}"}
+				log.Println("Rolladen Bad stop")
+			}
+		case "double":
+			// Rolladen Bad close
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138a53a4a83d4/set", Message: "{\"state\":\"CLOSE\"}"}
+			log.Println("Rolladen Bad close")
+		default:
+			return
+		}
+		genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Rolladen_Bad_schalter_rolladen_bad_action", Data: "reset"}
+		return
+	}
+
 	// perform actions dimmer knob via MQTT
 	dimmerKnob(mInfo, "WZDIMMER1", "action", "zigbee2mqtt/0xa4c1388f96c41f89", "zigbee2mqtt/0xf4b3b1fffef20459/l1/set")
 
@@ -504,7 +527,7 @@ func chronoEvents(mInfo Msginfo) {
 		batPrice = x.(string)
 		log.Println("BAT_PRICE: ", batPrice)
 		flBatprice, _ := strconv.ParseFloat(batPrice, 64)
-		if (soc > "22.00" || soc == "100") && flAp >= flBatprice && flAs < float64(1400) {
+		if (soc > "22.00" || soc == "100") && flAp >= flBatprice {
 			if flAs > float64(1400) && soc < "55" {
 				cmd = "off"
 			} else {
