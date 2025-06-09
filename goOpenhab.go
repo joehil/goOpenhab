@@ -196,6 +196,9 @@ func procRun() {
 
 	traceLog("goOpenhab is up and running")
 
+	time.Sleep(3 * time.Minute)
+
+	// Start the watchdog
 	for {
 		time.Sleep(60 * time.Second)
 		if chronoCounter == chronoOld {

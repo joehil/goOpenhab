@@ -406,7 +406,19 @@ func processRulesInfo(mInfo Msginfo) {
 		if mInfo.Msgevent[0:7] == "restapi" || mInfo.Msgevent == "mqtt.reconnect.event" || mInfo.Msgevent == "watchdog.event" {
 			log.Println(mInfo.Msgevent, mInfo.Msgobject)
 			if mInfo.Msgevent == "watchdog.event" {
+				filename := "/tmp/goOpenhab_watchdog.semaphore"
+				_, err := os.Stat(filename)
+				if err == nil {
+					debugLog(1, "Rebooting system")
+					genVar.Telegram <- "Rebooting system"
+					reboot()
+				}
 				restartNetwork()
+				file, err := os.Create(filename)
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer file.Close()
 				time.Sleep((5 * time.Second))
 				panic("Watchdog called")
 			}
@@ -649,7 +661,7 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "off"}
 			log.Println("Waschmaschine off")
 		}
-		doBoiler := onOffByPrice("t4", mInfo.Msgobject)
+		doBoiler := onOffByPrice("m1", mInfo.Msgobject)
 		//doBoiler := onOffByPrice("m1", mInfo.Msgobject)
 		if doBoiler {
 			genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
@@ -735,7 +747,7 @@ func rulesInit() {
 	if tWaschmaschine_zone == "" || tWaschmaschine_zone == "NULL" {
 		genVar.Postin <- Requestin{Node: "items", Item: "schalter_waschmaschine_zone", Data: "maxtotal"}
 	}
-	doBoiler := onOffByPrice("t4", fmt.Sprintf("%02d", hour))
+	doBoiler := onOffByPrice("m1", fmt.Sprintf("%02d", hour))
 	if doBoiler {
 		genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
 		log.Println("Boiler on")
