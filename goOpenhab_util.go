@@ -65,10 +65,10 @@ func getItemState(item string) string {
 }
 
 func restartNetwork() {
-	cmd1 := exec.Command("/usr/bin/sudo", "/usr/sbin/service", "networking", "stop")
+	cmd1 := exec.Command("/usr/bin/sudo", "/usr/bin/nmcli", "n", "off")
 	cmd1.Run()
 	time.Sleep(10 * time.Second)
-	cmd2 := exec.Command("/usr/bin/sudo", "/usr/sbin/service", "networking", "start")
+	cmd2 := exec.Command("/usr/bin/sudo", "/usr/bin/nmcli", "n", "on")
 	cmd2.Run()
 }
 

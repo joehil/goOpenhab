@@ -32,9 +32,9 @@ func timeTrigger() {
 
 		go processRulesInfo(mInfo)
 		debugLog(5, fmt.Sprintf("Watchdog counter: %d", counter))
-		if counter == old {
+		if counter == old && rules_active {
 			mInfo.Msgevent = "watchdog.event"
-			mInfo.Msgobject = "Watchdog"
+			mInfo.Msgobject = "Watchdog Chrono"
 			go processRulesInfo(mInfo)
 		}
 		old = counter

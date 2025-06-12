@@ -409,18 +409,23 @@ func processRulesInfo(mInfo Msginfo) {
 				filename := "/tmp/goOpenhab_watchdog.semaphore"
 				_, err := os.Stat(filename)
 				if err == nil {
-					debugLog(1, "Rebooting system")
+					log.Println("Rebooting system")
 					genVar.Telegram <- "Rebooting system"
 					reboot()
+					return
 				}
-				restartNetwork()
+				log.Println("Restart network")
+				genVar.Telegram <- "Restart network"
 				file, err := os.Create(filename)
 				if err != nil {
 					log.Fatal(err)
+				} else {
+					log.Println("Semaphore file created: ", filename)
 				}
 				defer file.Close()
+				restartNetwork()
 				time.Sleep((5 * time.Second))
-				panic("Watchdog called")
+				panic("Restart network")
 			}
 		}
 	}
@@ -760,6 +765,8 @@ func rulesInit() {
 		os.Remove("/tmp/tibberN.json")
 		os.Remove("/tmp/tibberT.json")
 	}
+
+	rules_active = true
 
 	genVar.Telegram <- "goOpenhab initialized"
 }

@@ -20,6 +20,7 @@ import (
 
 var do_trace bool = false
 var msg_trace bool = false
+var rules_active = false
 var counter uint64 = 0
 var chronoCounter = 0
 var chronoOld = 0
@@ -196,7 +197,7 @@ func procRun() {
 
 	traceLog("goOpenhab is up and running")
 
-	time.Sleep(3 * time.Minute)
+	time.Sleep(8 * time.Minute)
 
 	// Start the watchdog
 	for {
@@ -204,7 +205,7 @@ func procRun() {
 		if chronoCounter == chronoOld {
 			var mInfo Msginfo
 			mInfo.Msgevent = "watchdog.event"
-			mInfo.Msgobject = "Watchdog"
+			mInfo.Msgobject = "Watchdog Main"
 			go processRulesInfo(mInfo)
 		}
 		chronoOld = chronoCounter
