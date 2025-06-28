@@ -401,6 +401,18 @@ func processRulesInfo(mInfo Msginfo) {
 		setHeating("heizung_schlafzimmer", mInfo.Msgnewstate)
 	}
 
+	if mInfo.Msgobject == "Thermometer_Bad_Luftfeuchtigkeit" {
+		log.Println("Bad Luftfeuchtigkeit:", mInfo.Msgnewstate)
+		if mInfo.Msgnewstate > "60" {
+			log.Println("Bad Luftfeuchtigkeit 60% - Schalte Lüfter an")
+			genVar.Postin <- Requestin{Node: "items", Item: "Luefter_Bad_luefter_bad_onoff", Data: "ON"}
+		}
+		if mInfo.Msgnewstate < "55" {
+			log.Println("Bad Luftfeuchtigkeit 55% - Schalte Lüfter aus")
+			genVar.Postin <- Requestin{Node: "items", Item: "Luefter_Bad_luefter_bad_onoff", Data: "OFF"}
+		}
+	}
+
 	// log internal events (restapi, mqtt, watchdog)
 	if len(mInfo.Msgevent) >= 8 {
 		if mInfo.Msgevent[0:7] == "restapi" || mInfo.Msgevent == "mqtt.reconnect.event" || mInfo.Msgevent == "watchdog.event" {
@@ -415,14 +427,14 @@ func processRulesInfo(mInfo Msginfo) {
 					return
 				}
 				log.Println("Restart network")
-				genVar.Telegram <- "Restart network"
-				file, err := os.Create(filename)
+				//				genVar.Telegram <- "Restart network"
+				_, err = os.Create(filename)
+				log.Println("File error:", err)
 				if err != nil {
 					log.Fatal(err)
 				} else {
 					log.Println("Semaphore file created: ", filename)
 				}
-				defer file.Close()
 				restartNetwork()
 				time.Sleep((5 * time.Second))
 				panic("Restart network")
@@ -666,8 +678,8 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "off"}
 			log.Println("Waschmaschine off")
 		}
-		doBoiler := onOffByPrice("m1", mInfo.Msgobject)
-		//doBoiler := onOffByPrice("m1", mInfo.Msgobject)
+		doBoiler := onOffByPrice("t4", mInfo.Msgobject)
+		//doBoiler := onOffByPrice("t4", mInfo.Msgobject)
 		if doBoiler {
 			genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
 			log.Println("Boiler on")
@@ -714,11 +726,14 @@ func chronoEvents(mInfo Msginfo) {
 
 // rules that are called when goOpenhab initializes
 
-func rulesInit() {
+func rulesInit() int {
 	uptime, _ := getSystemUptime()
 	log.Printf("Uptime: %f\n", uptime)
-	if uptime < 300 {
-		time.Sleep(time.Second * time.Duration(300-uptime))
+	if uptime < float64(300) {
+		log.Println("Waiting for system to be ready")
+		time.Sleep(time.Second * 300)
+		log.Println("Reinitializing goOpenhab rules...")
+		return 99
 	}
 	now := time.Now()
 	hour := now.Hour()
@@ -752,7 +767,7 @@ func rulesInit() {
 	if tWaschmaschine_zone == "" || tWaschmaschine_zone == "NULL" {
 		genVar.Postin <- Requestin{Node: "items", Item: "schalter_waschmaschine_zone", Data: "maxtotal"}
 	}
-	doBoiler := onOffByPrice("m1", fmt.Sprintf("%02d", hour))
+	doBoiler := onOffByPrice("t4", fmt.Sprintf("%02d", hour))
 	if doBoiler {
 		genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
 		log.Println("Boiler on")
@@ -769,6 +784,7 @@ func rulesInit() {
 	rules_active = true
 
 	genVar.Telegram <- "goOpenhab initialized"
+	return 0
 }
 
 // special funtions as a support to make relatively short rules

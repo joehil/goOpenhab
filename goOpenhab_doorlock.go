@@ -36,7 +36,9 @@ func connect2Doorlock(secrets []int, tags *[]string, pwds *[]string) {
 		min = time.Now().Minute()
 		if min%15 == 0 {
 			creKey()
-			genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/cls", Message: "X"}
+                        if len(*tags) > 0 {
+			  genVar.Mqttmsg <- Mqttparms{Topic: "doorlock/in/cls", Message: "X"}
+                        }
 			time.Sleep(time.Second)
 			for _, element := range *tags {
 				strs := strings.Split(element, ";")

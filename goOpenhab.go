@@ -178,7 +178,12 @@ func procRun() {
 	log.Println("Trace set to: ", do_trace)
 
 	// Do customized initialization
-	rulesInit()
+	rc := rulesInit()
+
+	if rc != 0 {
+		log.Fatalln("Error during rules initialization, exiting")
+		os.Exit(99)
+	}
 
 	// Catch signals
 	signals := make(chan os.Signal, 1)
