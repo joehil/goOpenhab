@@ -275,25 +275,29 @@ func processRulesInfo(mInfo Msginfo) {
 
 	// perform actions for pushbutton Joerg via MQTT
 	if mInfo.Msgobject == "zigbee2mqtt/0x00158d000893ac30" {
-		switch readJson(mInfo.Msgnewstate, "action") {
+		action := readJson(mInfo.Msgnewstate, "action")
+		log.Println("Pushbutton Joerg: ", action)
+		switch action {
 		case "single":
+			itemToggle("Licht_Zigbee_licht_flur_oben_onoff")
 		case "double":
 		case "hold":
-			// switch light on in our bedroom
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13855c794f2f9/set", Message: "{\"state\":\"TOGGLE\"}"}
-			log.Println("Toggle bedroom light")
+			itemToggle("Schalter_Schlafzimmer_EinAus")
 		default:
 		}
 		return
 	}
 
 	// perform actions for pushbutton Brigitte via MQTT
-	if mInfo.Msgobject == "zigbee2mqtt/0xa4c13805a991149c" {
-		switch readJson(mInfo.Msgnewstate, "action") {
+	if mInfo.Msgobject == "zigbee2mqtt/0x00158d0007c0cbf2" {
+		action := readJson(mInfo.Msgnewstate, "action")
+		log.Println("Pushbutton Brigitte: ", action)
+		switch action {
 		case "single":
-			itemToggle("Lichtschalter_Flur_oben")
+			itemToggle("Licht_Zigbee_licht_flur_oben_onoff")
 		case "double":
 		case "hold":
+			itemToggle("Schalter_Schlafzimmer_EinAus")
 		default:
 		}
 		return
@@ -303,7 +307,7 @@ func processRulesInfo(mInfo Msginfo) {
 	if mInfo.Msgobject == "zigbee2mqtt/0x187a3efffe0f5a35" {
 		switch readJson(mInfo.Msgnewstate, "action") {
 		case "1_single":
-			itemToggle("Lichtschalter_Flur_oben")
+			itemToggle("Licht_Zigbee_licht_flur_oben_onoff")
 		case "2_single":
 			itemToggle("Lichtschalter_Flur_EG")
 		case "3_single":
@@ -417,12 +421,12 @@ func processRulesInfo(mInfo Msginfo) {
 	if len(mInfo.Msgevent) >= 8 {
 		if mInfo.Msgevent[0:7] == "restapi" || mInfo.Msgevent == "mqtt.reconnect.event" || mInfo.Msgevent == "watchdog.event" {
 			log.Println(mInfo.Msgevent, mInfo.Msgobject)
-			if mInfo.Msgevent == "watchdog.event" {
+			if mInfo.Msgevent == "watchdog.event" && rules_active {
 				filename := "/tmp/goOpenhab_watchdog.semaphore"
 				_, err := os.Stat(filename)
 				if err == nil {
 					log.Println("Rebooting system")
-					genVar.Telegram <- "Rebooting system"
+					//					genVar.Telegram <- "Rebooting system"
 					reboot()
 					return
 				}
@@ -444,7 +448,7 @@ func processRulesInfo(mInfo Msginfo) {
 
 	if (mInfo.Msgobject == "Bewegungsmelder_1_EinAus" || mInfo.Msgobject == "Bewegungsmelder_2_EinAus") && mInfo.Msgnewstate == "ON" {
 		debugLog(5, "Bewegungsmelder Flur oben")
-		genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_oben", Data: "ON"}
+		genVar.Postin <- Requestin{Node: "items", Item: "Licht_Zigbee_licht_flur_oben_onoff", Data: "ON"}
 		return
 	}
 
@@ -452,7 +456,7 @@ func processRulesInfo(mInfo Msginfo) {
 		var pac float64 = 0
 		var guest string = "OFF"
 		debugLog(5, "Bewegungsmelder Flur oben und EG")
-		genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_oben", Data: "ON"}
+		genVar.Postin <- Requestin{Node: "items", Item: "Licht_Zigbee_licht_flur_oben_onoff", Data: "ON"}
 		x, found := genVar.Pers.Get("!BalkonPAC")
 		if found {
 			flPac, err := strconv.ParseFloat(x.(string), 64)
@@ -490,6 +494,15 @@ func processRulesInfo(mInfo Msginfo) {
 	}
 
 	if mInfo.Msgobject == "Lichtschalter_Buro_Jorg" {
+		if mInfo.Msgnewstate == "ON" {
+			setItemOffTime(mInfo.Msgobject, 300)
+		} else {
+			setItemOffTime(mInfo.Msgobject, 0)
+		}
+		return
+	}
+
+	if mInfo.Msgobject == "Licht_Zigbee_licht_flur_oben_onoff" {
 		if mInfo.Msgnewstate == "ON" {
 			setItemOffTime(mInfo.Msgobject, 300)
 		} else {
