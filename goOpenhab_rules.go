@@ -81,6 +81,7 @@ func processRulesInfo(mInfo Msginfo) {
 				}
 				x, found = genVar.Pers.Get("!BATTERYLOAD")
 				if found {
+					debugLog(5, fmt.Sprintf("Batteryload: %s", x))
 					if x == "1" {
 						if poti < 127 {
 							poti = 127
@@ -95,7 +96,8 @@ func processRulesInfo(mInfo Msginfo) {
 					battery("off")
 				}
 				debugLog(5, fmt.Sprintf("Digipot old: %d new %d flNew %0.2f", intDigiPot, poti, flNew))
-				if intDigiPot != poti {
+				tmint := time.Now().Second() % 10
+				if tmint == 0 || poti != intDigiPot {
 					debugLog(5, fmt.Sprintf("Digipot setzen auf: %d", poti))
 					// genVar.Mqttmsg <- Mqttparms{Topic: "digipot/inTopic", Message: fmt.Sprintf("%d", poti)}
 					genVar.Postin <- Requestin{Node: "items", Item: "Digipot_Poti", Data: fmt.Sprintf("%d", poti)}
@@ -281,6 +283,7 @@ func processRulesInfo(mInfo Msginfo) {
 		case "single":
 			itemToggle("Licht_Zigbee_licht_flur_oben_onoff")
 		case "double":
+			itemToggle("Licht_Zigbee_licht_flur_eg_onoff")
 		case "hold":
 			itemToggle("Schalter_Schlafzimmer_EinAus")
 		default:
@@ -303,17 +306,27 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
-	// perform actions for pushbutton via MQTT
+	// perform actions for pushbutton Flur_EG via MQTT
 	if mInfo.Msgobject == "zigbee2mqtt/0x187a3efffe0f5a35" {
 		switch readJson(mInfo.Msgnewstate, "action") {
 		case "1_single":
 			itemToggle("Licht_Zigbee_licht_flur_oben_onoff")
 		case "2_single":
-			itemToggle("Lichtschalter_Flur_EG")
+			itemToggle("Licht_Zigbee_licht_flur_eg_onoff")
 		case "3_single":
 			itemToggle("Wandschrank_1_EinAus")
 		case "4_single":
 			itemToggle("Wandschrank_2_EinAus")
+		default:
+		}
+		return
+	}
+
+	// perform actions for pushbutton Kellertür via MQTT
+	if mInfo.Msgobject == "zigbee2mqtt/0x00158d0007c0d18a" {
+		switch readJson(mInfo.Msgnewstate, "action") {
+		case "single":
+			genVar.Postin <- Requestin{Node: "items", Item: "Licht_Zigbee_licht_flur_keller_onoff", Data: "ON"}
 		default:
 		}
 		return
@@ -469,7 +482,7 @@ func processRulesInfo(mInfo Msginfo) {
 			guest = x.(string)
 		}
 		if pac < float64(50) || guest == "ON" {
-			genVar.Postin <- Requestin{Node: "items", Item: "Lichtschalter_Flur_EG", Data: "ON"}
+			genVar.Postin <- Requestin{Node: "items", Item: "Licht_Zigbee_licht_flur_eg_onoff", Data: "ON"}
 		}
 		return
 	}
@@ -505,6 +518,24 @@ func processRulesInfo(mInfo Msginfo) {
 	if mInfo.Msgobject == "Licht_Zigbee_licht_flur_oben_onoff" {
 		if mInfo.Msgnewstate == "ON" {
 			setItemOffTime(mInfo.Msgobject, 300)
+		} else {
+			setItemOffTime(mInfo.Msgobject, 0)
+		}
+		return
+	}
+
+	if mInfo.Msgobject == "Licht_Zigbee_licht_flur_eg_onoff" {
+		if mInfo.Msgnewstate == "ON" {
+			setItemOffTime(mInfo.Msgobject, 300)
+		} else {
+			setItemOffTime(mInfo.Msgobject, 0)
+		}
+		return
+	}
+
+	if mInfo.Msgobject == "Licht_Zigbee_licht_flur_keller_onoff" {
+		if mInfo.Msgnewstate == "ON" {
+			setItemOffTime(mInfo.Msgobject, 1200)
 		} else {
 			setItemOffTime(mInfo.Msgobject, 0)
 		}
@@ -633,12 +664,12 @@ func chronoEvents(mInfo Msginfo) {
 		flMt, _ := strconv.ParseFloat(mt, 64)
 		flCp, _ := strconv.ParseFloat(ap, 64)
 		flZone, _ := strconv.ParseFloat(zonePrice, 64)
-		debugLog(5, fmt.Sprintf("Zone price float: %0.4f", flZone))
+		debugLog(1, fmt.Sprintf("Zone price float: %0.4f", flZone))
 
 		x, found := genVar.Pers.Get("!BATTERYLOAD")
 		if found {
 			btLoad = x.(string)
-			debugLog(5, "!BATTERYLOAD: "+btLoad)
+			debugLog(1, "!BATTERYLOAD: "+btLoad)
 		}
 
 		if soc < "21.00" && soc != "100" && flMt >= flCp {
@@ -653,7 +684,7 @@ func chronoEvents(mInfo Msginfo) {
 			btLoad = "0"
 			log.Println("Battery Load off")
 		}
-		debugLog(5, "BtLoad: "+btLoad)
+		debugLog(1, "BtLoad: "+btLoad)
 		if btLoad != "X" {
 			genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.NoExpiration)
 		}
@@ -694,10 +725,10 @@ func chronoEvents(mInfo Msginfo) {
 		doBoiler := onOffByPrice("t4", mInfo.Msgobject)
 		//doBoiler := onOffByPrice("t4", mInfo.Msgobject)
 		if doBoiler {
-			genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
+			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "ON"}
 			log.Println("Boiler on")
 		} else {
-			genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "OFF"}
+			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "OFF"}
 			log.Println("Boiler off")
 		}
 		doLaden_klein := onOffByPrice("mintotal", mInfo.Msgobject)
@@ -782,10 +813,10 @@ func rulesInit() int {
 	}
 	doBoiler := onOffByPrice("t4", fmt.Sprintf("%02d", hour))
 	if doBoiler {
-		genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "ON"}
+		genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "ON"}
 		log.Println("Boiler on")
 	} else {
-		genVar.Postin <- Requestin{Node: "items", Item: "shelly1pmWasserboiler1921680183_Betrieb", Data: "OFF"}
+		genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "OFF"}
 		log.Println("Boiler off")
 	}
 
