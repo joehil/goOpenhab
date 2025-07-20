@@ -186,9 +186,16 @@ func processRulesInfo(mInfo Msginfo) {
 		guest := getItemState("gast_switch")
 		if guest == "OFF" {
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
+			time.Sleep(20 * time.Second)
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
+			time.Sleep(20 * time.Second)
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138f57159f18d/set", Message: "{\"state\":\"OPEN\"}"}
+			time.Sleep(20 * time.Second)
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13887c35e3920/set", Message: "{\"state\":\"OPEN\"}"}
 			debugLog(3, "Open Rolladen Gaste Seite")
 			debugLog(3, "Open Rolladen Gaste Vorne")
+			debugLog(3, "Open Rolladen Joerg")
+			debugLog(3, "Open Rolladen Buero")
 		}
 		genVar.Telegram <- "Sonnenaufgang"
 		return
@@ -200,9 +207,19 @@ func processRulesInfo(mInfo Msginfo) {
 		guest := getItemState("gast_switch")
 		if guest == "OFF" {
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"CLOSE\"}"}
+			time.Sleep(20 * time.Second)
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"CLOSE\"}"}
+			time.Sleep(20 * time.Second)
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138f57159f18d/set", Message: "{\"state\":\"CLOSE\"}"}
+			time.Sleep(20 * time.Second)
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138a53a4a83d4/set", Message: "{\"state\":\"CLOSE\"}"}
+			time.Sleep(20 * time.Second)
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13887c35e3920/set", Message: "{\"state\":\"CLOSE\"}"}
 			debugLog(3, "Close Rolladen Gaste Seite")
 			debugLog(3, "Close Rolladen Gaste Vorne")
+			debugLog(3, "Close Rolladen Joerg")
+			debugLog(3, "Close Rolladen Buero")
+			debugLog(3, "Close Rolladen Bad")
 		}
 		genVar.Telegram <- "Sonnenuntergang"
 		return
@@ -266,6 +283,30 @@ func processRulesInfo(mInfo Msginfo) {
 			return
 		}
 		genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Rolladen_Bad_schalter_rolladen_bad_action", Data: "reset"}
+		return
+	}
+
+	// perform actions for rolladen Joerg via MQTT
+	if mInfo.Msgobject == "Schalter_Rollagen_Joerg_schalter_rolladen_joerg_action" {
+		switch mInfo.Msgnewstate {
+		case "single":
+			// Rolladen Joerg Seite open
+			move := getItemState("Rolladen_Joerg_rolladen_joerg_moving")
+			if move == "STOP" {
+				genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138f57159f18d/set", Message: "{\"state\":\"OPEN\"}"}
+				log.Println("Rolladen Joerg open")
+			} else {
+				genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138f57159f18d/set", Message: "{\"state\":\"STOP\"}"}
+				log.Println("Rolladen Joerg stop")
+			}
+		case "double":
+			// Rolladen Joerg close
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138f57159f18d/set", Message: "{\"state\":\"CLOSE\"}"}
+			log.Println("Rolladen Joerg close")
+		default:
+			return
+		}
+		genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Rolladen_Joerg_schalter_rolladen_joerg_action", Data: "reset"}
 		return
 	}
 
