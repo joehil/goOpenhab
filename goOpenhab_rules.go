@@ -503,6 +503,7 @@ func processRulesInfo(mInfo Msginfo) {
 	if (mInfo.Msgobject == "Bewegungsmelder_1_EinAus" || mInfo.Msgobject == "Bewegungsmelder_2_EinAus") && mInfo.Msgnewstate == "ON" {
 		debugLog(5, "Bewegungsmelder Flur oben")
 		genVar.Postin <- Requestin{Node: "items", Item: "Licht_Zigbee_licht_flur_oben_onoff", Data: "ON"}
+		setItemOffTime("Licht_Zigbee_licht_flur_oben_onoff", 300)
 		return
 	}
 
@@ -511,6 +512,7 @@ func processRulesInfo(mInfo Msginfo) {
 		var guest string = "OFF"
 		debugLog(5, "Bewegungsmelder Flur oben und EG")
 		genVar.Postin <- Requestin{Node: "items", Item: "Licht_Zigbee_licht_flur_oben_onoff", Data: "ON"}
+		setItemOffTime("Licht_Zigbee_licht_flur_oben_onoff", 300)
 		x, found := genVar.Pers.Get("!BalkonPAC")
 		if found {
 			flPac, err := strconv.ParseFloat(x.(string), 64)
@@ -528,7 +530,7 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
-	if mInfo.Msgevent == "network.availability.machine.event" && mInfo.Msgnewstate == "999" {
+	if mInfo.Msgevent == "network.availability.machine.event" && mInfo.Msgnewstate == "999" && rules_active {
 		log.Println(mInfo.Msgevent, mInfo.Msgobject, mInfo.Msgnewstate)
 		reboot()
 		time.Sleep((5 * time.Second))
