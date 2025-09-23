@@ -63,12 +63,12 @@ func processRulesInfo(mInfo Msginfo) {
 				x, found := genVar.Pers.Get("!LADEN_KLEIN")
 				if (intDigiPot > 240 && flNew < float64(-50)) || (found && x == "ON") || (soc >= "96" && flNew < float64(-50)) {
 					// switch on laden_klein
-					genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "ON"}
+					genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_laden_klein", Data: "ON"}
 				}
 				if x != "ON" || !found {
 					if intDigiPot < 80 && flNew > float64(0) && soc < "96" {
 						// switch off laden_klein
-						genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg", Data: "OFF"}
+						genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_laden_klein", Data: "OFF"}
 					}
 				}
 				var flPoti float64 = flNew * float64(-0.255)
@@ -439,24 +439,29 @@ func processRulesInfo(mInfo Msginfo) {
 	}
 
 	if mInfo.Msgobject == "BadThermometer_Bad_Temperature" {
-		setHeating("heizung_bad", mInfo.Msgnewstate)
-	}
-	if mInfo.Msgobject == "ObergeschossThermometer_Guest_Temperature" {
-		setHeating("heizung_gaestezimmer", mInfo.Msgnewstate)
-		setFHEM("T_Julia", mInfo.Msgnewstate)
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Bad", "Soll_Temperatur_Bad", mInfo.Msgnewstate)
 	}
 	if mInfo.Msgobject == "Thermometer_Buero_Temperature" {
-		setHeating("heizung_brigitte", mInfo.Msgnewstate)
-		setFHEM("T_Buero", mInfo.Msgnewstate)
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Buero", "Soll_Temperatur_Buero", mInfo.Msgnewstate)
+	}
+	if mInfo.Msgobject == "ObergeschossThermometer_Guest_Temperature" {
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Gast", "Soll_Temperatur_Gast", mInfo.Msgnewstate)
+	}
+	if mInfo.Msgobject == "Thermometer_Jorg_Temperature" {
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Joerg", "Soll_Temperatur_Joerg", mInfo.Msgnewstate)
+	}
+	if mInfo.Msgobject == "Thermometer_Schlafzimmer_Temperature" {
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Schlafzimmer", "Soll_Temperatur_Schlafzimmer", mInfo.Msgnewstate)
+	}
+	if mInfo.Msgobject == "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert" {
+		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer1", "Soll_Temperatur_Wohnzimmer", mInfo.Msgnewstate)
+		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer2", "Soll_Temperatur_Wohnzimmer", mInfo.Msgnewstate)
 	}
 	if mInfo.Msgobject == "Thermometer_WC_Temperature" {
-		setFHEM("T_Klo", mInfo.Msgnewstate)
+		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Gaesteklo", "Soll_Temperatur_Gaesteklo", mInfo.Msgnewstate)
 	}
-	if mInfo.Msgobject == "FHEM_Thermometer_Joerg" {
-		setHeating("heizung_joerg", mInfo.Msgnewstate)
-	}
-	if mInfo.Msgobject == "FHEM_Thermometer_Schlafzimmer" {
-		setHeating("heizung_schlafzimmer", mInfo.Msgnewstate)
+	if mInfo.Msgobject == "Thermometer_Esszimmer_Temperature" {
+		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Esszimmer", "Soll_Temperatur_Esszimmer", mInfo.Msgnewstate)
 	}
 
 	if mInfo.Msgobject == "Thermometer_Bad_Luftfeuchtigkeit" {
@@ -585,10 +590,10 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
-	if mInfo.Msgobject == "Inverter_klein_Power" {
+	if mInfo.Msgobject == "Zigbee_Steckdosen_steckdose_inverter_klein_power" {
 		flPower, _ := strconv.ParseFloat(mInfo.Msgnewstate, 64)
 		if flPower > 90 && flPower < 100 {
-			genVar.Postin <- Requestin{Node: "items", Item: "Inverter_klein_EinAus", Data: "OFF"}
+			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_inverter_klein", Data: "OFF"}
 			log.Println(mInfo.Msgobject, mInfo.Msgnewstate)
 		}
 		return
@@ -776,11 +781,11 @@ func chronoEvents(mInfo Msginfo) {
 		}
 		doLaden_klein := onOffByPrice("mintotal", mInfo.Msgobject)
 		if doLaden_klein {
-			genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "ON"}
+			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_laden_klein", Value: "state", Data: "ON"}
 			genVar.Pers.Set("!LADEN_KLEIN", "ON", cache.NoExpiration)
 			log.Println("Laden_klein on")
 		} else {
-			genVar.Postin <- Requestin{Node: "items", Item: "Steckdose_Jorg_Betrieb", Value: "state", Data: "OFF"}
+			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_laden_klein", Value: "state", Data: "OFF"}
 			genVar.Pers.Delete("!LADEN_KLEIN")
 			log.Println("Laden_klein off")
 		}
@@ -854,6 +859,7 @@ func rulesInit() int {
 	if tWaschmaschine_zone == "" || tWaschmaschine_zone == "NULL" {
 		genVar.Postin <- Requestin{Node: "items", Item: "schalter_waschmaschine_zone", Data: "maxtotal"}
 	}
+
 	doBoiler := onOffByPrice("t4", fmt.Sprintf("%02d", hour))
 	if doBoiler {
 		genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "ON"}
@@ -1119,55 +1125,12 @@ func itemToggle(item string) {
 	genVar.Postin <- Requestin{Node: "items", Item: item, Data: command}
 }
 
-func setHeating(item string, istate string) {
-	var hOben string = "IIIII"
-	x, found := genVar.Pers.Get("!HEIZUNG_OBEN")
-	if found {
-		hOben = x.(string)
+func setHeating(actor string, desired string, state string) {
+	genVar.Getin <- Requestin{Node: "items", Item: desired, Value: "state"}
+	answer := <-genVar.Getout
+	if state < answer {
+		genVar.Postin <- Requestin{Node: "items", Item: actor, Data: "ON"}
+	} else {
+		genVar.Postin <- Requestin{Node: "items", Item: actor, Data: "OFF"}
 	}
-
-	c := strings.Split(hOben, "")
-
-	temp, err := strconv.ParseFloat(istate, 64)
-	if err == nil {
-		switch item {
-		case "heizung_bad":
-			if temp < float64(18) {
-				c[0] = "N"
-			} else {
-				c[0] = "F"
-			}
-		case "heizung_gaestezimmer":
-			if temp < float64(16) {
-				c[1] = "N"
-			} else {
-				c[1] = "F"
-			}
-		case "heizung_brigitte":
-			if temp < float64(16) {
-				c[2] = "N"
-			} else {
-				c[2] = "F"
-			}
-		case "heizung_schlafzimmer":
-			if temp < float64(17.5) {
-				c[3] = "N"
-			} else {
-				c[3] = "F"
-			}
-		case "heizung_joerg":
-			if temp < float64(18.5) {
-				c[4] = "N"
-			} else {
-				c[4] = "F"
-			}
-		default:
-		}
-	}
-
-	hOben = strings.Join(c, "")
-
-	log.Printf("hOben: %s\n", hOben)
-
-	genVar.Pers.Set("!HEIZUNG_OBEN", hOben, cache.NoExpiration)
 }

@@ -174,6 +174,9 @@ func procRun() {
 	go desiredState()
 	traceLog("desiredState server was initialized")
 
+	go checkDocker()
+	traceLog("checkDocker server was initialized")
+
 	// Inform about trace
 	log.Println("Trace set to: ", do_trace)
 
