@@ -37,6 +37,7 @@ var doorlockTags []string
 var doorlockPwds []string
 
 var genVar Generalvars
+var timeVar Timevars
 
 //var ptrGenVars *Generalvars
 

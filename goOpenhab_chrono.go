@@ -37,6 +37,12 @@ func timeTrigger() {
 			mInfo.Msgobject = "Watchdog Chrono"
 			go processRulesInfo(mInfo)
 		}
+
+		if minutes == 0 || minutes == 15 || minutes == 30 || minutes == 45 {
+			mInfo.Msgevent = "periodic15.event"
+			mInfo.Msgobject = "Periodic 15min"
+			go processRulesInfo(mInfo)
+		}
 		old = counter
 		chronoCounter++
 	}

@@ -14,10 +14,27 @@ import (
 
 func processRulesInfo(mInfo Msginfo) {
 	msgLog(mInfo)
+
+	atime := time.Now()
+	timeVar.hour = atime.Hour()
+	timeVar.minute = atime.Minute()
+	timeVar.second = atime.Second()
+	timeVar.day = atime.Day()
+	timeVar.month = atime.Month()
+	timeVar.year = atime.Year()
+	timeVar.day = atime.Day()
+	timeVar.yearday = atime.YearDay()
+	timeVar.weekday = atime.Weekday()
+	timeVar.dayminute = timeVar.hour*60 + timeVar.minute
+
 	debugLog(9, fmt.Sprintf("%s;%s;%s;%s;%s", mInfo.Msgevent, mInfo.Msgobjtype, mInfo.Msgobject, mInfo.Msgoldstate, mInfo.Msgnewstate))
 	if mInfo.Msgevent == "chrono.event" {
 		chronoEvents(mInfo)
 		return
+	}
+
+	if mInfo.Msgobject == "Tibber_Aktueller_Preis" {
+		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Data: mInfo.Msgnewstate}
 	}
 
 	// Process current power
@@ -438,30 +455,31 @@ func processRulesInfo(mInfo Msginfo) {
 		}
 	}
 
-	if mInfo.Msgobject == "BadThermometer_Bad_Temperature" {
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Bad", "Soll_Temperatur_Bad", mInfo.Msgnewstate)
+	if mInfo.Msgobject == "Thermometer_Bad_TemperatureZusatz" || mInfo.Msgevent == "periodic15.event" {
+		time.Sleep(2 * time.Second)
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Bad", "Soll_Temperatur_Bad", "Thermometer_Bad_TemperatureZusatz")
 	}
-	if mInfo.Msgobject == "Thermometer_Buero_Temperature" {
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Buero", "Soll_Temperatur_Buero", mInfo.Msgnewstate)
+	if mInfo.Msgobject == "Thermometer_Buero_Temperature" || mInfo.Msgevent == "periodic15.event" {
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Brigitte", "Soll_Temperatur_Buero", "Thermometer_Buero_Temperature")
 	}
-	if mInfo.Msgobject == "ObergeschossThermometer_Guest_Temperature" {
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Gast", "Soll_Temperatur_Gast", mInfo.Msgnewstate)
+	if mInfo.Msgobject == "ObergeschossThermometer_Guest_Temperature" || mInfo.Msgevent == "periodic15.event" {
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Gast", "Soll_Temperatur_Gast", "ObergeschossThermometer_Guest_Temperature")
 	}
-	if mInfo.Msgobject == "Thermometer_Jorg_Temperature" {
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Joerg", "Soll_Temperatur_Joerg", mInfo.Msgnewstate)
+	if mInfo.Msgobject == "Thermometer_Jorg_Temperature" || mInfo.Msgevent == "periodic15.event" {
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Joerg", "Soll_Temperatur_Joerg", "Thermometer_Jorg_Temperature")
 	}
-	if mInfo.Msgobject == "Thermometer_Schlafzimmer_Temperature" {
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Schlafzimmer", "Soll_Temperatur_Schlafzimmer", mInfo.Msgnewstate)
+	if mInfo.Msgobject == "Thermometer_Schlafzimmer_Temperature" || mInfo.Msgevent == "periodic15.event" {
+		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Schlafzimmer", "Soll_Temperatur_Schlafzimmer", "Thermometer_Schlafzimmer_Temperature")
 	}
-	if mInfo.Msgobject == "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert" {
-		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer1", "Soll_Temperatur_Wohnzimmer", mInfo.Msgnewstate)
-		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer2", "Soll_Temperatur_Wohnzimmer", mInfo.Msgnewstate)
+	if mInfo.Msgobject == "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert" || mInfo.Msgevent == "periodic15.event" {
+		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer1", "Soll_Temperatur_Wohnzimmer", "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert")
+		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer2", "Soll_Temperatur_Wohnzimmer", "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert")
 	}
-	if mInfo.Msgobject == "Thermometer_WC_Temperature" {
-		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Gaesteklo", "Soll_Temperatur_Gaesteklo", mInfo.Msgnewstate)
+	if mInfo.Msgobject == "Thermometer_WC_Temperature" || mInfo.Msgevent == "periodic15.event" {
+		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Gaesteklo", "Soll_Temperatur_Gaesteklo", "Thermometer_WC_Temperature")
 	}
-	if mInfo.Msgobject == "Thermometer_Esszimmer_Temperature" {
-		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Esszimmer", "Soll_Temperatur_Esszimmer", mInfo.Msgnewstate)
+	if mInfo.Msgobject == "Thermometer_Esszimmer_Temperature" || mInfo.Msgevent == "periodic15.event" {
+		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Esszimmer", "Soll_Temperatur_Esszimmer", "Thermometer_Esszimmer_Temperature")
 	}
 
 	if mInfo.Msgobject == "Thermometer_Bad_Luftfeuchtigkeit" {
@@ -740,8 +758,10 @@ func chronoEvents(mInfo Msginfo) {
 	}
 
 	// this rule runs at the first minute of each hour
-	if (mInfo.Msgobject[3:5] == "00" && mInfo.Msgobject != "00:00") || mInfo.Msgobject == "00:05" {
-		setCurrentPrice(mInfo.Msgobject[0:2])
+	if (mInfo.Msgobject[3:5] == "00" || mInfo.Msgobject[3:5] == "30" || mInfo.Msgobject[3:5] == "15" || mInfo.Msgobject[3:5] == "45") &&
+		mInfo.Msgobject != "00:00" || mInfo.Msgobject == "00:05" {
+		//	setCurrentPrice(mInfo.Msgobject[0:2])
+		time.Sleep(15 * time.Second)
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
 		log.Println(getWeather())
 		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
@@ -1068,19 +1088,25 @@ func judgePvForecast(search string) bool {
 }
 
 func setCurrentPrice(h string) {
-	item := "Tibber_total" + h
-	if h == "00" {
-		item = "Tibber_tomorrow00"
-	}
-	log.Println(item)
-	genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
-	answer := <-genVar.Getout
-	log.Println(answer)
-	if answer != "" {
-		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
-	} else {
-		genVar.Telegram <- "goOpenhab current price not set"
-	}
+	/*
+	   item := "Tibber_total" + h
+
+	   	if h == "00" {
+	   		item = "Tibber_tomorrow00"
+	   	}
+
+	   log.Println(item)
+	   genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
+	   answer := <-genVar.Getout
+	   log.Println(answer)
+
+	   	if answer != "" {
+	   		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
+	   	} else {
+
+	   		genVar.Telegram <- "goOpenhab current price not set"
+	   	}
+	*/
 }
 
 func getSOC() float64 {
@@ -1125,10 +1151,27 @@ func itemToggle(item string) {
 	genVar.Postin <- Requestin{Node: "items", Item: item, Data: command}
 }
 
-func setHeating(actor string, desired string, state string) {
+func setHeating(actor string, desired string, sensor string) {
 	genVar.Getin <- Requestin{Node: "items", Item: desired, Value: "state"}
 	answer := <-genVar.Getout
-	if state < answer {
+	flDesired, _ := strconv.ParseFloat(answer, 64)
+	genVar.Getin <- Requestin{Node: "items", Item: sensor, Value: "state"}
+	answer = <-genVar.Getout
+	flState, _ := strconv.ParseFloat(answer, 64)
+
+	if timeVar.hour >= 7 && timeVar.hour < 12 && timeVar.weekday != time.Saturday && timeVar.weekday != time.Sunday {
+		flDesired = flDesired - float64(1.2)*(float64(12*60)-float64(timeVar.dayminute))/float64(5*60)
+	}
+	if timeVar.hour >= 0 && timeVar.hour < 6 {
+		flDesired = flDesired - float64(1.5)*(float64(6*60)-float64(timeVar.dayminute))/float64(6*60)
+	}
+	if timeVar.hour >= 22 && timeVar.hour < 24 {
+		flDesired = flDesired - float64(1.5)
+	}
+
+	log.Printf("Heating %s: State %0.1f, Desired %0.1f\n", actor, flState, flDesired)
+
+	if flState < flDesired {
 		genVar.Postin <- Requestin{Node: "items", Item: actor, Data: "ON"}
 	} else {
 		genVar.Postin <- Requestin{Node: "items", Item: actor, Data: "OFF"}

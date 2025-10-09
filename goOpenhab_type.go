@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/patrickmn/go-cache"
 )
 
@@ -59,4 +61,16 @@ type Generalvars struct {
 	MMpassw       string
 	MMcountry     string
 	MMpostcode    string
+}
+
+type Timevars struct {
+	hour      int
+	minute    int
+	second    int
+	day       int
+	month     time.Month
+	year      int
+	weekday   time.Weekday
+	yearday   int
+	dayminute int
 }
