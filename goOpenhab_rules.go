@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/patrickmn/go-cache"
+	"github.com/tidwall/gjson"
 )
 
 func processRulesInfo(mInfo Msginfo) {
@@ -640,6 +641,22 @@ func processRulesInfo(mInfo Msginfo) {
 		log.Println(mInfo.Msgobject + " : " + mInfo.Msgnewstate)
 		genVar.Telegram <- "Verbindung zu joehil.de verloren"
 		return
+	}
+
+	if mInfo.Msgobject == "ZigbeeCheck_zigbeecheckjson" {
+		var summe float64 = 0
+		var messages float64 = 0
+		v1 := gjson.Get(mInfo.Msgnewstate, "os.memory_percent")
+		log.Println("Zigbee memory percent: ", v1)
+		result := gjson.Get(mInfo.Msgnewstate, "devices")
+		result.ForEach(func(key, value gjson.Result) bool {
+			cnt1 := gjson.Get(value.String(), "leave_count")
+			cnt2 := gjson.Get(value.String(), "messages")
+			summe += cnt1.Num
+			messages += cnt2.Num
+			return true // keep iterating
+		})
+		log.Printf("Zigbee Summe Leaves: %.2f  Summe Messages: %.2f\n", summe, messages)
 	}
 }
 
