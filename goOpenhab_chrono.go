@@ -16,8 +16,13 @@ func timeTrigger() {
 	}
 	for {
 		var mInfo Msginfo
-		time.Sleep(1 * time.Minute)
+		time.Sleep(50 * time.Second)
+
 		hours, minutes, seconds := time.Now().Clock()
+		for seconds > 10 {
+			hours, minutes, seconds = time.Now().Clock()
+			time.Sleep(250 * time.Millisecond)
+		}
 
 		currentTime := time.Now()
 		tdat := fmt.Sprintf("%04d-%02d-%02d",

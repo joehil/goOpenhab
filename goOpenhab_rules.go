@@ -190,6 +190,14 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	// start garage engine
+	if mInfo.Msgobject == "Schalter_Zigbee_Schalter_Garage" && mInfo.Msgnewstate == "ON" {
+		log.Println("Start Garagenmotor")
+		time.Sleep(3 * time.Second)
+		genVar.Postin <- Requestin{Node: "items", Item: mInfo.Msgobject, Data: "OFF"}
+		return
+	}
+
 	// store pv forecast in item
 	if mInfo.Msgevent == "pvforecast.watthours.event" {
 		genVar.Pers.Set("pv_forecast_"+mInfo.Msgobject, mInfo.Msgnewstate, cache.NoExpiration)
@@ -482,6 +490,9 @@ func processRulesInfo(mInfo Msginfo) {
 	if mInfo.Msgobject == "Thermometer_Esszimmer_Temperature" || mInfo.Msgevent == "periodic15.event" {
 		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Esszimmer", "Soll_Temperatur_Esszimmer", "Thermometer_Esszimmer_Temperature")
 	}
+	if mInfo.Msgobject == "Thermometer_Kueche_Temperature" || mInfo.Msgevent == "periodic15.event" {
+		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Kueche", "Soll_Temperatur_Kueche", "Thermometer_Kueche_Temperature")
+	}
 
 	if mInfo.Msgobject == "Thermometer_Bad_Luftfeuchtigkeit" {
 		log.Println("Bad Luftfeuchtigkeit:", mInfo.Msgnewstate)
@@ -489,8 +500,8 @@ func processRulesInfo(mInfo Msginfo) {
 			log.Println("Bad Luftfeuchtigkeit 60% - Schalte Lüfter an")
 			genVar.Postin <- Requestin{Node: "items", Item: "Luefter_Bad_luefter_bad_onoff", Data: "ON"}
 		}
-		if mInfo.Msgnewstate < "55" {
-			log.Println("Bad Luftfeuchtigkeit 55% - Schalte Lüfter aus")
+		if mInfo.Msgnewstate < "58" {
+			log.Println("Bad Luftfeuchtigkeit 58% - Schalte Lüfter aus")
 			genVar.Postin <- Requestin{Node: "items", Item: "Luefter_Bad_luefter_bad_onoff", Data: "OFF"}
 		}
 	}
@@ -747,6 +758,9 @@ func chronoEvents(mInfo Msginfo) {
 		flMt, _ := strconv.ParseFloat(mt, 64)
 		flCp, _ := strconv.ParseFloat(ap, 64)
 		flZone, _ := strconv.ParseFloat(zonePrice, 64)
+		if flZone == float64(0) {
+			flZone = float64(9.99)
+		}
 		debugLog(1, fmt.Sprintf("Zone price float: %0.4f", flZone))
 
 		x, found := genVar.Pers.Get("!BATTERYLOAD")
