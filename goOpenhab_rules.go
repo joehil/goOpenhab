@@ -413,85 +413,43 @@ func processRulesInfo(mInfo Msginfo) {
 		}
 	}
 
-	// MQTT LoRa events
-	if len(mInfo.Msgobject) >= 18 {
-		if mInfo.Msgevent == "mqtt.pubhandler.event" &&
-			mInfo.Msgobject[0:18] == "LoRa2MQTT/outTopic" {
-			//			log.Println(mInfo.Msgevent, mInfo.Msgobject, mInfo.Msgnewstate)
-			erg := strings.Split(mInfo.Msgobject, "/")
-			if erg[2] == "200" && erg[3] == "11" {
-				ttemp, err := strconv.ParseFloat(mInfo.Msgnewstate, 64)
-				if err == nil {
-					stemp := fmt.Sprintf("%.2f", ttemp/100)
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_oben_temperatur", Data: stemp}
-				}
-			}
-			if erg[2] == "200" && erg[3] == "80" {
-				var hOben string = "IIIII"
-				x, found := genVar.Pers.Get("!HEIZUNG_OBEN")
-				if found {
-					hOben = x.(string)
-				}
-				if mInfo.Msgnewstate[0:5] != hOben {
-					genVar.Mqttmsg <- Mqttparms{Topic: "LoRa2MQTT/inTopic/200/80/1", Message: hOben}
-				}
-				if mInfo.Msgnewstate[0:1] == "N" {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_bad", Data: "ON"}
-				} else {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_bad", Data: "OFF"}
-				}
-				if mInfo.Msgnewstate[1:2] == "N" {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_gaestezimmer", Data: "ON"}
-				} else {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_gaestezimmer", Data: "OFF"}
-				}
-				if mInfo.Msgnewstate[2:3] == "N" {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_brigitte", Data: "ON"}
-				} else {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_brigitte", Data: "OFF"}
-				}
-				if mInfo.Msgnewstate[3:4] == "N" {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_schlafzimmer", Data: "ON"}
-				} else {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_schlafzimmer", Data: "OFF"}
-				}
-				if mInfo.Msgnewstate[4:5] == "N" {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_joerg", Data: "ON"}
-				} else {
-					genVar.Postin <- Requestin{Node: "items", Item: "heizung_joerg", Data: "OFF"}
-				}
-			}
-		}
-	}
-
+	var heatercnt int = 0
 	if mInfo.Msgobject == "Thermometer_Bad_TemperatureZusatz" || mInfo.Msgevent == "periodic15.event" {
 		time.Sleep(2 * time.Second)
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Bad", "Soll_Temperatur_Bad", "Thermometer_Bad_TemperatureZusatz")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Bad", "Soll_Temperatur_Bad", "Thermometer_Bad_TemperatureZusatz")
 	}
 	if mInfo.Msgobject == "Thermometer_Buero_Temperature" || mInfo.Msgevent == "periodic15.event" {
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Brigitte", "Soll_Temperatur_Buero", "Thermometer_Buero_Temperature")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Brigitte", "Soll_Temperatur_Buero", "Thermometer_Buero_Temperature")
 	}
 	if mInfo.Msgobject == "ObergeschossThermometer_Guest_Temperature" || mInfo.Msgevent == "periodic15.event" {
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Gast", "Soll_Temperatur_Gast", "ObergeschossThermometer_Guest_Temperature")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Gast", "Soll_Temperatur_Gast", "ObergeschossThermometer_Guest_Temperature")
 	}
 	if mInfo.Msgobject == "Thermometer_Jorg_Temperature" || mInfo.Msgevent == "periodic15.event" {
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Joerg", "Soll_Temperatur_Joerg", "Thermometer_Jorg_Temperature")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Joerg", "Soll_Temperatur_Joerg", "Thermometer_Jorg_Temperature")
 	}
 	if mInfo.Msgobject == "Thermometer_Schlafzimmer_Temperature" || mInfo.Msgevent == "periodic15.event" {
-		setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Schlafzimmer", "Soll_Temperatur_Schlafzimmer", "Thermometer_Schlafzimmer_Temperature")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Oben_ZBMultiHeatingSwitch_Oben_Schlafzimmer", "Soll_Temperatur_Schlafzimmer", "Thermometer_Schlafzimmer_Temperature")
 	}
 	if mInfo.Msgobject == "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert" || mInfo.Msgevent == "periodic15.event" {
-		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer1", "Soll_Temperatur_Wohnzimmer", "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert")
-		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer2", "Soll_Temperatur_Wohnzimmer", "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer1", "Soll_Temperatur_Wohnzimmer", "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Wohnzimmer2", "Soll_Temperatur_Wohnzimmer", "Temperatur_Wohnzimmer_Temperatur_Wohnzimmer_Wert")
 	}
 	if mInfo.Msgobject == "Thermometer_WC_Temperature" || mInfo.Msgevent == "periodic15.event" {
-		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Gaesteklo", "Soll_Temperatur_Gaesteklo", "Thermometer_WC_Temperature")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Gaesteklo", "Soll_Temperatur_Gaesteklo", "Thermometer_WC_Temperature")
 	}
 	if mInfo.Msgobject == "Thermometer_Esszimmer_Temperature" || mInfo.Msgevent == "periodic15.event" {
-		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Esszimmer", "Soll_Temperatur_Esszimmer", "Thermometer_Esszimmer_Temperature")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Esszimmer", "Soll_Temperatur_Esszimmer", "Thermometer_Esszimmer_Temperature")
 	}
 	if mInfo.Msgobject == "Thermometer_Kueche_Temperature" || mInfo.Msgevent == "periodic15.event" {
-		setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Kueche", "Soll_Temperatur_Kueche", "Thermometer_Kueche_Temperature")
+		heatercnt += setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Kueche", "Soll_Temperatur_Kueche", "Thermometer_Kueche_Temperature")
+	}
+	if mInfo.Msgevent == "periodic15.event" {
+		if heatercnt < 3 {
+			genVar.Postin <- Requestin{Node: "items", Item: "Strommessung_strommessung_einaus", Data: "ON"}
+		} else {
+			genVar.Postin <- Requestin{Node: "items", Item: "Strommessung_strommessung_einaus", Data: "OFF"}
+		}
+		log.Println("Heizungen angeschaltet:", heatercnt)
 	}
 
 	if mInfo.Msgobject == "Thermometer_Bad_Luftfeuchtigkeit" {
@@ -500,8 +458,8 @@ func processRulesInfo(mInfo Msginfo) {
 			log.Println("Bad Luftfeuchtigkeit 60% - Schalte Lüfter an")
 			genVar.Postin <- Requestin{Node: "items", Item: "Luefter_Bad_luefter_bad_onoff", Data: "ON"}
 		}
-		if mInfo.Msgnewstate < "58" {
-			log.Println("Bad Luftfeuchtigkeit 58% - Schalte Lüfter aus")
+		if mInfo.Msgnewstate < "59" {
+			log.Println("Bad Luftfeuchtigkeit 59% - Schalte Lüfter aus")
 			genVar.Postin <- Requestin{Node: "items", Item: "Luefter_Bad_luefter_bad_onoff", Data: "OFF"}
 		}
 	}
@@ -1182,7 +1140,8 @@ func itemToggle(item string) {
 	genVar.Postin <- Requestin{Node: "items", Item: item, Data: command}
 }
 
-func setHeating(actor string, desired string, sensor string) {
+func setHeating(actor string, desired string, sensor string) int {
+	var result int
 	genVar.Getin <- Requestin{Node: "items", Item: desired, Value: "state"}
 	answer := <-genVar.Getout
 	flDesired, _ := strconv.ParseFloat(answer, 64)
@@ -1204,7 +1163,10 @@ func setHeating(actor string, desired string, sensor string) {
 
 	if flState < flDesired {
 		genVar.Postin <- Requestin{Node: "items", Item: actor, Data: "ON"}
+		result = 1
 	} else {
 		genVar.Postin <- Requestin{Node: "items", Item: actor, Data: "OFF"}
+		result = 0
 	}
+	return result
 }
