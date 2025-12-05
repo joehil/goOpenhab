@@ -443,11 +443,12 @@ func processRulesInfo(mInfo Msginfo) {
 	if mInfo.Msgobject == "Thermometer_Kueche_Temperature" || mInfo.Msgevent == "periodic15.event" {
 		heatercnt += setHeating("ZBMultiHeatingSwitch_Unten_ZBMultiHeatingSwitch_Unten_Kueche", "Soll_Temperatur_Kueche", "Thermometer_Kueche_Temperature")
 	}
-	if mInfo.Msgevent == "periodic15.event" {
+	if mInfo.Msgevent == "periodic15.event" && timeVar.hour >= 6 && timeVar.hour < 22 {
+		time.Sleep(time.Second * 5)
 		if heatercnt < 3 {
-			genVar.Postin <- Requestin{Node: "items", Item: "Strommessung_strommessung_einaus", Data: "ON"}
+			genVar.Postin <- Requestin{Node: "items", Item: "Strommessung_strommessung_future", Data: "ON"}
 		} else {
-			genVar.Postin <- Requestin{Node: "items", Item: "Strommessung_strommessung_einaus", Data: "OFF"}
+			genVar.Postin <- Requestin{Node: "items", Item: "Strommessung_strommessung_future", Data: "OFF"}
 		}
 		log.Println("Heizungen angeschaltet:", heatercnt)
 	}
