@@ -16,6 +16,12 @@ import (
 func processRulesInfo(mInfo Msginfo) {
 	msgLog(mInfo)
 
+	if mInfo.Msgevent == "openhab.event.ItemCommandEvent" ||
+	   mInfo.Msgevent == "penhab.event.ItemStatePredictedEvent" ||
+	   mInfo.Msgevent == "ab.event.ThingStatusInfoChangedEvent" {
+		return
+	}
+
 	atime := time.Now()
 	timeVar.hour = atime.Hour()
 	timeVar.minute = atime.Minute()
@@ -1122,6 +1128,10 @@ func getSOCstr() string {
 	x, found := genVar.Pers.Get("SOC")
 	if found {
 		SOC = x.(string)
+		if !isNumDot(SOC) {
+                	SOC = getItemState("battery_can_SOC")
+                	genVar.Pers.Set("SOC", SOC, cache.NoExpiration)
+		}
 	} else {
 		SOC = getItemState("battery_can_SOC")
 		genVar.Pers.Set("SOC", SOC, cache.NoExpiration)
@@ -1170,4 +1180,19 @@ func setHeating(actor string, desired string, sensor string) int {
 		result = 0
 	}
 	return result
+}
+
+func isNumDot(s string) bool {
+    dotFound := false
+    for _, v := range s {
+        if v == '.' {
+            if dotFound {
+                return false
+            }
+            dotFound = true
+        } else if v < '0' || v > '9' {
+            return false
+        }
+    }
+    return true
 }

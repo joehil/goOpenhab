@@ -233,13 +233,13 @@ func procLine(msg string) {
 			rest := msg[73:]
 			mes := strings.Split(rest, " ")
 			if mInfo.Msgevent == "openhab.event.ItemStateChangedEvent" {
-				if len(mes) == 7 {
+				if len(mes) > 7 && mes[7] == "(source:" {
 					mInfo.Msgobjtype = mes[0]
 					mInfo.Msgobject = strings.Trim(mes[1], "' ")
 					mInfo.Msgoldstate = mes[4]
 					mInfo.Msgnewstate = mes[6]
 				}
-				if len(mes) == 9 {
+				if len(mes) > 9 && mes[9] == "(source:" {
 					mInfo.Msgobjtype = mes[0]
 					mInfo.Msgobject = strings.Trim(mes[1], "' ")
 					mInfo.Msgoldstate = strings.Join(mes[4:5], " ")
