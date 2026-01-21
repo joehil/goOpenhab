@@ -284,3 +284,14 @@ func getSystemUptime() (float64, error) {
 	}
 	return strconv.ParseFloat(fields[0], 64)
 }
+
+func restartZigbee() {
+        requestURL := fmt.Sprintf("http://192.168.68.61:8090/restart/")
+        log.Println(requestURL)
+        _, err := http.Get(requestURL)
+        if err != nil {
+                log.Printf("client: Zigbee restart error: %s\n", err)
+        }
+}
+
+
