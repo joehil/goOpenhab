@@ -196,13 +196,21 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
-	// start garage engine
-	if mInfo.Msgobject == "Schalter_Zigbee_Schalter_Garage" && mInfo.Msgnewstate == "ON" {
-		log.Println("Start Garagenmotor")
-		time.Sleep(3 * time.Second)
-		genVar.Postin <- Requestin{Node: "items", Item: mInfo.Msgobject, Data: "OFF"}
+	// telegram, if front door is opened
+	if mInfo.Msgobject == "FHEM_Haustuer" && mInfo.Msgnewstate == "ON" {
+		log.Println("Haustuer geoeffnet")
+		genVar.Telegram <- "Haustür wurde geöffnet"
 		return
 	}
+
+        // start garage engine
+        if mInfo.Msgobject == "Schalter_Zigbee_Schalter_Garage" && mInfo.Msgnewstate == "ON" {
+                log.Println("Start Garagenmotor")
+                time.Sleep(3 * time.Second)
+                genVar.Postin <- Requestin{Node: "items", Item: mInfo.Msgobject, Data: "OFF"}
+                return
+        }
+
 
 	// store pv forecast in item
 	if mInfo.Msgevent == "pvforecast.watthours.event" {
@@ -507,7 +515,7 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
-	if mInfo.Msgobject == "Bewegungsmelder_3_EinAus" && mInfo.Msgnewstate == "ON" {
+	if (mInfo.Msgobject == "Bewegungsmelder_3_EinAus" || mInfo.Msgobject == "FHEM_Bewegungsmelder_oben") && mInfo.Msgnewstate == "ON" {
 		var pac float64 = 0
 		var guest string = "OFF"
 		debugLog(5, "Bewegungsmelder Flur oben und EG")
