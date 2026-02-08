@@ -641,7 +641,7 @@ func processRulesInfo(mInfo Msginfo) {
 			return true // keep iterating
 		})
 		log.Printf("Zigbee Summe Leaves: %.2f  Summe Messages: %.2f\n", summe, messages)
-                if messages < float64(500) {
+                if messages < float64(1050) {
                         genVar.Telegram <- "Zigbee neu gestartet"
                         restartZigbee()
                 }
