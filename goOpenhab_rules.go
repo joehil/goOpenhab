@@ -44,6 +44,23 @@ func processRulesInfo(mInfo Msginfo) {
 		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Data: mInfo.Msgnewstate}
 	}
 
+        if mInfo.Msgobject == "Tibber_Aktueller_Verbrauch" {
+                if mInfo.Msgnewstate == "0.001" {
+			log.Println("Trigger1 gefunden")
+			genVar.Pers.Set("!TIBBER-TRIGGER", "J", cache.NoExpiration)
+		}
+                if mInfo.Msgnewstate == "-0.001" {
+        		_, found := genVar.Pers.Get("!TIBBER-TRIGGER")
+			_, y := genVar.Pers.Get("!WAIT_Tibber_Aktueller_Verbrauch")
+			log.Println("Trigger2 gefunden:", found, y)
+			if found && !y {
+				genVar.Telegram <- "Tibber WSS funktioniert nicht"
+				setItemWaitTime(mInfo.Msgobject, 7200)
+			}
+			genVar.Pers.Delete("!TIBBER-TRIGGER")
+		}
+	}
+
 	// Process current power
 	if mInfo.Msgobject == "Tibber_Aktueller_Verbrauch" {
 		var flInverter float64
@@ -210,7 +227,6 @@ func processRulesInfo(mInfo Msginfo) {
                 genVar.Postin <- Requestin{Node: "items", Item: mInfo.Msgobject, Data: "OFF"}
                 return
         }
-
 
 	// store pv forecast in item
 	if mInfo.Msgevent == "pvforecast.watthours.event" {
@@ -641,7 +657,7 @@ func processRulesInfo(mInfo Msginfo) {
 			return true // keep iterating
 		})
 		log.Printf("Zigbee Summe Leaves: %.2f  Summe Messages: %.2f\n", summe, messages)
-                if messages < float64(1050) {
+                if messages < float64(400) {
                         genVar.Telegram <- "Zigbee neu gestartet"
                         restartZigbee()
                 }
@@ -703,6 +719,7 @@ func chronoEvents(mInfo Msginfo) {
 
 	go iterateOffs()
 	go iterateAlarms()
+	go iterateWaits()
 
 	// emergency switch off
 	if mInfo.Msgobject == "00:00" || mInfo.Msgobject == "01:00" || mInfo.Msgobject == "02:00" {
@@ -723,8 +740,8 @@ func chronoEvents(mInfo Msginfo) {
 		}
 	} */
 
-	// this rule runs at minutes ending at 2 and 7
-	if strings.ContainsAny(mInfo.Msgobject[4:5], "27") {
+	// this rule runs at minutes ending at 1 and 6
+	if strings.ContainsAny(mInfo.Msgobject[4:5], "16") {
 		var btLoad string = "X"
 		mt := getItemState("Tibber_mintotal")
 		zone := getItemState("schalter_laden48_zone")
@@ -798,7 +815,7 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "off"}
 			log.Println("Waschmaschine off")
 		}
-		doBoiler := onOffByPrice("t4", mInfo.Msgobject)
+		doBoiler := onOffByPrice("t6", mInfo.Msgobject)
 		//doBoiler := onOffByPrice("t4", mInfo.Msgobject)
 		if doBoiler {
 			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "ON"}
@@ -807,7 +824,7 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "OFF"}
 			log.Println("Boiler off")
 		}
-		doLaden_klein := onOffByPrice("mintotal", mInfo.Msgobject)
+		doLaden_klein := onOffByPrice("t1", mInfo.Msgobject)
 		if doLaden_klein {
 			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_laden_klein", Value: "state", Data: "ON"}
 			genVar.Pers.Set("!LADEN_KLEIN", "ON", cache.NoExpiration)
@@ -908,7 +925,7 @@ func rulesInit() int {
 	return 0
 }
 
-// special funtions as a support to make relatively short rules
+// special functions as a support to make relatively short rules
 
 func calculateBatteryPrice(hour string) {
 	var flSoc float64

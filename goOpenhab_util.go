@@ -178,7 +178,7 @@ func checkItemAlarm(item string) bool {
 	var answer bool = false
 	d := time.Now().Unix()
 	var tim string
-	var alarm int64
+	var alarm int64 = int64(d + 1)
 	if x, found := genVar.Pers.Get(name); found {
 		tim = x.(string)
 		al, err := strconv.ParseInt(tim, 10, 64)
@@ -193,6 +193,34 @@ func checkItemAlarm(item string) bool {
 		answer = true
 	}
 	return answer
+}
+
+func setItemWaitTime(item string, waittime int) {
+        var name string = "!WAIT_" + item
+        d := time.Now().Unix() + int64(waittime)
+        genVar.Pers.Set(name, fmt.Sprintf("%d", d), cache.NoExpiration)
+}
+
+func checkItemWait(item string) bool {
+       var name string = "!WAIT_" + item
+        var answer bool = false
+        d := time.Now().Unix() 
+        var tim string
+        var wait int64 = int64(d + 1)
+        if x, found := genVar.Pers.Get(name); found {
+                tim = x.(string)
+                al, err := strconv.ParseInt(tim, 10, 64)
+                if err != nil {
+                        wait = d
+                } else {
+                        wait = al
+                }
+        }
+
+        if d > wait {
+                answer = true
+        }
+        return answer
 }
 
 func iterateAlarms() {
@@ -212,6 +240,23 @@ func iterateAlarms() {
 		}
 	}
 }
+
+func iterateWaits() {
+        debugLog(7, "iterateWaits")
+        waits := genVar.Pers.Items()
+        for k, v := range waits {
+                if len(k) >= 6 {
+                        if k[0:6] == "!WAIT_" {
+                                item := k[6:]
+                                if checkItemWait(item) {
+                                        log.Printf("key[%s] value[%v]\n", item, v)
+                                        genVar.Pers.Delete(k)
+                                }
+                        }
+                }
+        }
+}
+
 
 func setItemOffTime(item string, offtime int) {
 	var name string = "!OFF_" + item
