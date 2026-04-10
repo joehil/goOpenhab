@@ -61,6 +61,10 @@ type Generalvars struct {
 	MMpassw       string
 	MMcountry     string
 	MMpostcode    string
+	matrix_homeserver	string
+	matrix_username		string
+	matrix_password		string
+	matrix_roomID		string
 }
 
 type Timevars struct {

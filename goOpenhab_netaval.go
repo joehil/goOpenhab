@@ -14,7 +14,7 @@ const networkUnavailableCode = 999
 // to ensure the request does not hang indefinitely. Returns an HTTP status code
 // indicating the result of the network check.
 func isNetworkAvailable(url string) int {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)

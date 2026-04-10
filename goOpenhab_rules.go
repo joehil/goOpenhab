@@ -42,6 +42,7 @@ func processRulesInfo(mInfo Msginfo) {
 
 	if mInfo.Msgobject == "Tibber_Aktueller_Preis" {
 		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Data: mInfo.Msgnewstate}
+		log.Println("Aktueller Preis:", mInfo.Msgnewstate)
 	}
 
         if mInfo.Msgobject == "Tibber_Aktueller_Verbrauch" {
@@ -217,6 +218,7 @@ func processRulesInfo(mInfo Msginfo) {
 	if mInfo.Msgobject == "FHEM_Haustuer" && mInfo.Msgnewstate == "ON" {
 		log.Println("Haustuer geoeffnet")
 		genVar.Telegram <- "Haustür wurde geöffnet"
+		matrixSend("Haustür wurde geöffnet")
 		return
 	}
 
@@ -254,6 +256,7 @@ func processRulesInfo(mInfo Msginfo) {
 			debugLog(3, "Open Rolladen Buero")
 		}
 		genVar.Telegram <- "Sonnenaufgang"
+		matrixSend("Sonnenaufgang")
 		return
 	}
 
@@ -278,6 +281,7 @@ func processRulesInfo(mInfo Msginfo) {
 			debugLog(3, "Close Rolladen Bad")
 		}
 		genVar.Telegram <- "Sonnenuntergang"
+		matrixSend("Sonnenuntergang")
 		return
 	}
 
@@ -438,6 +442,7 @@ func processRulesInfo(mInfo Msginfo) {
 			if mInfo.Msgobject == "doorlock/message" && mInfo.Msgnewstate[0:16] == "TAG: door opened" {
 				recordVideo("http://192.168.0.168:81/stream", "15")
 				genVar.Telegram <- mInfo.Msgnewstate
+				matrixSend(mInfo.Msgnewstate)
 				return
 			}
 		}
@@ -839,6 +844,9 @@ func chronoEvents(mInfo Msginfo) {
 		guest := getItemState("gast_switch")
 		genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
 
+
+		battery("off")
+
 		return
 	}
 
@@ -922,6 +930,7 @@ func rulesInit() int {
 	rules_active = true
 
 	genVar.Telegram <- "goOpenhab initialized"
+	matrixSend("goOpenhab initialized")
 	return 0
 }
 

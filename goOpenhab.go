@@ -353,6 +353,12 @@ func read_config() {
 	genVar.MMcountry = viper.GetString("meteomatics_country")
 	genVar.MMpostcode = viper.GetString("meteomatics_postcode")
 
+        genVar.matrix_homeserver = viper.GetString("matrix_homeserver")
+        genVar.matrix_username = viper.GetString("matrix_username")
+        genVar.matrix_password = viper.GetString("matrix_password")
+        genVar.matrix_roomID = viper.GetString("matrix_roomID")
+
+
 	doorlockSecrets = viper.GetIntSlice("doorlock_secrets")
 	doorlockTags = viper.GetStringSlice("doorlock_tags")
 	doorlockPwds = viper.GetStringSlice("doorlock_pwds")
