@@ -41,16 +41,16 @@ func processRulesInfo(mInfo Msginfo) {
 	}
 
 	if mInfo.Msgobject == "tibber2mqtt/prices/" {
-		log.Printf("%s;%s;%s;%s;%s", mInfo.Msgevent, mInfo.Msgobjtype, mInfo.Msgobject, mInfo.Msgoldstate, mInfo.Msgnewstate)
+//		log.Printf("%s;%s;%s;%s;%s", mInfo.Msgevent, mInfo.Msgobjtype, mInfo.Msgobject, mInfo.Msgoldstate, mInfo.Msgnewstate)
 		json2Openhab(mInfo.Msgnewstate)
 		return
 	}
 
 
-	if mInfo.Msgobject == "Tibber_Aktueller_Preis" {
-		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Data: mInfo.Msgnewstate}
-		log.Println("Aktueller Preis:", mInfo.Msgnewstate)
-	}
+//	if mInfo.Msgobject == "Tibber_Aktueller_Preis" {
+//		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Data: mInfo.Msgnewstate}
+//		log.Println("Aktueller Preis:", mInfo.Msgnewstate)
+//	}
 
         if mInfo.Msgobject == "Tibber_Aktueller_Verbrauch" {
                 if mInfo.Msgnewstate == "0.001" {
@@ -797,8 +797,8 @@ func chronoEvents(mInfo Msginfo) {
 	// this rule runs at the first minute of each hour
 	if (mInfo.Msgobject[3:5] == "00" || mInfo.Msgobject[3:5] == "30" || mInfo.Msgobject[3:5] == "15" || mInfo.Msgobject[3:5] == "45") &&
 		mInfo.Msgobject != "00:00" || mInfo.Msgobject == "00:05" {
-		//	setCurrentPrice(mInfo.Msgobject[0:2])
-		time.Sleep(15 * time.Second)
+		setCurrentPrice(mInfo.Msgobject[0:2], mInfo.Msgobject[3:5])
+		time.Sleep(5 * time.Second)
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
 		log.Println(getWeather())
 		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
@@ -889,9 +889,10 @@ func rulesInit() int {
 	}
 	now := time.Now()
 	hour := now.Hour()
+	minute := now.Minute()
 	exec_cmd("/opt/homeautomation/tibber2mqtt", "reinit")
 	time.Sleep(time.Second)
-	setCurrentPrice(fmt.Sprintf("%02d", hour))
+	setCurrentPrice(fmt.Sprintf("%02d", hour), fmt.Sprintf("%02d", minute))
 	sEinAus := getItemState("Soyosource_EinAus")
 	genVar.Pers.Set("Soyosource_EinAus", sEinAus, cache.NoExpiration)
 	log.Println("Soyosource_EinAus stored: ", sEinAus)
@@ -1128,26 +1129,34 @@ func judgePvForecast(search string) bool {
 	return result
 }
 
-func setCurrentPrice(h string) {
-	/*
-	   item := "Tibber_total" + h
+func setCurrentPrice(h string, m string) {
+	   index := getPriceIndex(h, m)
+	   item := "Tibber_total" + index
 
-	   	if h == "00" {
-	   		item = "Tibber_tomorrow00"
-	   	}
+	   if h == "000" {
+	   	item = "Tibber_tomorrow00"
+	   }
 
 	   log.Println(item)
 	   genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
 	   answer := <-genVar.Getout
 	   log.Println(answer)
 
-	   	if answer != "" {
-	   		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
-	   	} else {
+	   if answer != "" {
+	   	genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
+		genVar.Postin <- Requestin{Node: "items", Item: "Tibber_Aktueller_Preis", Value: "state", Data: answer}
+	   } else {
+	   	genVar.Telegram <- "goOpenhab current price not set"
+	   }
+}
 
-	   		genVar.Telegram <- "goOpenhab current price not set"
-	   	}
-	*/
+func getPriceIndex(h string, m string) string {
+	var result string
+	result = h + "0";
+	if m >= "15" {result = h + "1"}
+        if m >= "30" {result = h + "3"}
+        if m >= "45" {result = h + "4"}
+	return result  
 }
 
 func getSOC() float64 {
