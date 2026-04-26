@@ -113,6 +113,21 @@ func readJson(inJson string, field string) string {
 	}
 }
 
+func json2Openhab(inJson string) {
+        jsonData := []byte(inJson)
+
+        var result map[string]interface{}
+
+        if err := json.Unmarshal(jsonData, &result); err != nil {
+                log.Printf("error unmarshalling JSON: %v", err)
+		return
+        }
+
+	for i, eintrag := range result {
+		genVar.Postin <- Requestin{Node: "items", Item: "Tibber_"+i, Data: fmt.Sprintf("%.4f",eintrag)}
+	}
+}
+
 func dimmerBrightness(device string, change int) string {
 	var brightness int = 127
 	if x, found := genVar.Pers.Get("!" + device); found {

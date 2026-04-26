@@ -40,6 +40,13 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	if mInfo.Msgobject == "tibber2mqtt/prices/" {
+		log.Printf("%s;%s;%s;%s;%s", mInfo.Msgevent, mInfo.Msgobjtype, mInfo.Msgobject, mInfo.Msgoldstate, mInfo.Msgnewstate)
+		json2Openhab(mInfo.Msgnewstate)
+		return
+	}
+
+
 	if mInfo.Msgobject == "Tibber_Aktueller_Preis" {
 		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Data: mInfo.Msgnewstate}
 		log.Println("Aktueller Preis:", mInfo.Msgnewstate)
@@ -217,7 +224,7 @@ func processRulesInfo(mInfo Msginfo) {
 	// telegram, if front door is opened
 	if mInfo.Msgobject == "FHEM_Haustuer" && mInfo.Msgnewstate == "ON" {
 		log.Println("Haustuer geoeffnet")
-		genVar.Telegram <- "Haustür wurde geöffnet"
+//		genVar.Telegram <- "Haustür wurde geöffnet"
 		matrixSend("Haustür wurde geöffnet")
 		return
 	}
@@ -255,7 +262,7 @@ func processRulesInfo(mInfo Msginfo) {
 			debugLog(3, "Open Rolladen Joerg")
 			debugLog(3, "Open Rolladen Buero")
 		}
-		genVar.Telegram <- "Sonnenaufgang"
+//		genVar.Telegram <- "Sonnenaufgang"
 		matrixSend("Sonnenaufgang")
 		return
 	}
@@ -280,7 +287,7 @@ func processRulesInfo(mInfo Msginfo) {
 			debugLog(3, "Close Rolladen Buero")
 			debugLog(3, "Close Rolladen Bad")
 		}
-		genVar.Telegram <- "Sonnenuntergang"
+//		genVar.Telegram <- "Sonnenuntergang"
 		matrixSend("Sonnenuntergang")
 		return
 	}
@@ -929,7 +936,7 @@ func rulesInit() int {
 
 	rules_active = true
 
-	genVar.Telegram <- "goOpenhab initialized"
+//	genVar.Telegram <- "goOpenhab initialized"
 	matrixSend("goOpenhab initialized")
 	return 0
 }

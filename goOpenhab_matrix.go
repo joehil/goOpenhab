@@ -10,6 +10,7 @@ func matrixSend(message string) {
         client, err := gomatrix.NewClient(genVar.matrix_homeserver, "", "")
         if err != nil {
                 log.Printf("Matrix: Fehler beim Erstellen des Clients: %v", err)
+		return
         }
 
         resp, err := client.Login(&gomatrix.ReqLogin{
@@ -19,6 +20,7 @@ func matrixSend(message string) {
         })
         if err != nil {
                 log.Printf("Matrix: Login fehlgeschlagen: %v", err)
+		return
         }
         client.SetCredentials(resp.UserID, resp.AccessToken)
 
