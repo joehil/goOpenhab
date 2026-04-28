@@ -250,10 +250,10 @@ func processRulesInfo(mInfo Msginfo) {
 		(mInfo.Msgnewstate == "END") {
 		guest := getItemState("gast_switch")
 		if guest == "OFF" {
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
-			time.Sleep(20 * time.Second)
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
-			time.Sleep(20 * time.Second)
+//			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
+//			time.Sleep(20 * time.Second)
+//			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
+//			time.Sleep(20 * time.Second)
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138f57159f18d/set", Message: "{\"state\":\"OPEN\"}"}
 			time.Sleep(20 * time.Second)
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13887c35e3920/set", Message: "{\"state\":\"OPEN\"}"}
@@ -852,7 +852,7 @@ func chronoEvents(mInfo Msginfo) {
 		genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
 
 
-		battery("off")
+//		battery("off")
 
 		return
 	}
@@ -973,44 +973,104 @@ func calculateBatteryPrice(hour string) {
 	if flSoc < float64(0) {
 		hours = 0
 	} else {
-		hours = int(float64((flSoc / 7)))
+		hours = int(float64((flSoc * 4 / 7)))
 		hours += 1
 	}
 	intH, _ := strconv.Atoi(hour)
 	if hour > "11" || (hour > "00" && boolWeather) {
 		for i := intH; i < 24; i++ {
-			price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
+			price = getItemState(fmt.Sprintf("Tibber_total%02d0", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
 			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
+                        price = getItemState(fmt.Sprintf("Tibber_total%02d1", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
+                        price = getItemState(fmt.Sprintf("Tibber_total%02d3", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
+                        price = getItemState(fmt.Sprintf("Tibber_total%02d4", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
 		}
 	}
 	if hour <= "11" && hour > "00" && !boolWeather {
 		for i := intH; i <= 11; i++ {
-			price = getItemState(fmt.Sprintf("Tibber_total%02d", i))
+			price = getItemState(fmt.Sprintf("Tibber_total%02d0", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
 			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
+                       price = getItemState(fmt.Sprintf("Tibber_total%02d1", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
+                       price = getItemState(fmt.Sprintf("Tibber_total%02d3", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
+                       price = getItemState(fmt.Sprintf("Tibber_total%02d4", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
 		}
 	}
 	if hour == "00" {
 		for i := intH; i <= 9; i++ {
-			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d", i))
+			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d0", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
 			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
+                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d1", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
+                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d3", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
+                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d4", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
 		}
 	}
 	if hour > "20" {
 		for i := 0; i < 10; i++ {
-			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d", i))
+			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d0", i))
 			flPrice, _ = strconv.ParseFloat(price, 64)
 			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
+                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d1", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
+                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d3", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
+                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d4", i))
+                        flPrice, _ = strconv.ParseFloat(price, 64)
+                        if flPrice > flZone {
+                                prices = append(prices, flPrice)
+                        }
 		}
 	}
 	sort.Float64s(prices)
