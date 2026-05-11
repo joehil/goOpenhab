@@ -250,13 +250,13 @@ func processRulesInfo(mInfo Msginfo) {
 		(mInfo.Msgnewstate == "END") {
 		guest := getItemState("gast_switch")
 		if guest == "OFF" {
-//			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
-//			time.Sleep(20 * time.Second)
-//			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
-//			time.Sleep(20 * time.Second)
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138f57159f18d/set", Message: "{\"state\":\"OPEN\"}"}
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138bac3fa8036/set", Message: "{\"state\":\"OPEN\"}"}
+			time.Sleep(20 * time.Second)
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c1384bce7c2ebb/set", Message: "{\"state\":\"OPEN\"}"}
 			time.Sleep(20 * time.Second)
 			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13887c35e3920/set", Message: "{\"state\":\"OPEN\"}"}
+			time.Sleep(20 * time.Second)
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138f57159f18d/set", Message: "{\"state\":\"OPEN\"}"}
 			debugLog(3, "Open Rolladen Gaste Seite")
 			debugLog(3, "Open Rolladen Gaste Vorne")
 			debugLog(3, "Open Rolladen Joerg")
@@ -291,6 +291,22 @@ func processRulesInfo(mInfo Msginfo) {
 		matrixSend("Sonnenuntergang")
 		return
 	}
+
+
+// Rasenmaeher onoff
+        if mInfo.Msgobject == "rasenmaeher_onoff" {
+		log.Println("Rasenmaeher", mInfo.Msgnewstate)
+		switch mInfo.Msgnewstate {
+		case "ON":
+			genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "ON"}
+                case "OFF":
+                        genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "OFF"}
+		default:
+			return
+		}
+		return
+	}
+
 
 	// perform actions for several switches
 	if mInfo.Msgobject == "Schalter_Rolladen_Gast_Action" {
@@ -398,6 +414,22 @@ func processRulesInfo(mInfo Msginfo) {
 		}
 		return
 	}
+
+        // perform actions for pushbutton Terrasse via MQTT
+        if mInfo.Msgobject == "zigbee2mqtt/0x00158d0007dcc9a4" {
+                action := readJson(mInfo.Msgnewstate, "action")
+                log.Println("Pushbutton Terrasse: ", action)
+                switch action {
+                case "single":
+                        itemToggle("Schalter_Zigbee_Schalter_Brunnen")
+                case "double":
+    //                    itemToggle("Licht_Zigbee_licht_flur_eg_onoff")
+                case "hold":
+    //                    itemToggle("Schalter_Schlafzimmer_EinAus")
+                default:
+                }
+                return
+        }
 
 	// perform actions for pushbutton Brigitte via MQTT
 	if mInfo.Msgobject == "zigbee2mqtt/0x00158d0007c0cbf2" {
@@ -741,6 +773,11 @@ func chronoEvents(mInfo Msginfo) {
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13843caca9572/set", Message: "{\"state\":\"OFF\"}"}
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138c1f0eacf1d/set", Message: "{\"state\":\"OFF\"}"}
 	}
+        if mInfo.Msgobject == "22:00" {
+                log.Println("Switch Springbrunnen off")
+                genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x2486022aedca0000/set", Message: "{\"state_l1\":\"OFF\"}"}
+        }
+
 
 	// reboot fritzbox every 2 days at 03.17
 	/*	if mInfo.Msgobject == "03:17" {
@@ -819,6 +856,16 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_2EF5C7/POWER1", Message: "off"}
 			log.Println("Poessl loading ended")
 		}
+                doRasenmaeher := onOffByPrice("t2", mInfo.Msgobject)
+     		genVar.Getin <- Requestin{Node: "items", Item: "rasenmaeher_onoff", Value: "state"}
+        	onoff := <-genVar.Getout
+                if doRasenmaeher || onoff == "ON" {
+                        genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "ON"}
+                        log.Println("Rasenmaeher loading started")
+                } else {
+                        genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "OFF"}
+                        log.Println("Rasenmaeher loading ended")
+                }
 		doWaschmaschine := onOffByPrice(getItemState("schalter_waschmaschine_zone"), mInfo.Msgobject)
 		if doWaschmaschine {
 			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "on"}
