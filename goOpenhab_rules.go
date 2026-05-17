@@ -773,11 +773,12 @@ func chronoEvents(mInfo Msginfo) {
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13843caca9572/set", Message: "{\"state\":\"OFF\"}"}
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138c1f0eacf1d/set", Message: "{\"state\":\"OFF\"}"}
 	}
-        if mInfo.Msgobject == "22:00" {
-                log.Println("Switch Springbrunnen off")
-                genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x2486022aedca0000/set", Message: "{\"state_l1\":\"OFF\"}"}
-        }
-
+    if mInfo.Msgobject == "22:00" {
+        log.Println("Switch Springbrunnen off")
+        genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x2486022aedca0000/set", Message: "{\"state_l1\":\"OFF\"}"}
+        log.Println("Switch Rasenmaeher off")
+        genVar.Postin <- Requestin{Node: "items", Item: "rasenmaeher_onoff", Data: "OFF"}
+    }
 
 	// reboot fritzbox every 2 days at 03.17
 	/*	if mInfo.Msgobject == "03:17" {
@@ -789,8 +790,76 @@ func chronoEvents(mInfo Msginfo) {
 		}
 	} */
 
-	// this rule runs at minutes ending at 1 and 6
-	if strings.ContainsAny(mInfo.Msgobject[4:5], "16") {
+	// this rule runs at the first minute of each hour
+	if (mInfo.Msgobject[3:5] == "00" || mInfo.Msgobject[3:5] == "30" || mInfo.Msgobject[3:5] == "15" || mInfo.Msgobject[3:5] == "45") &&
+		mInfo.Msgobject != "00:00" || mInfo.Msgobject == "00:05" {
+		setCurrentPrice(mInfo.Msgobject[0:2], mInfo.Msgobject[3:5])
+		time.Sleep(5 * time.Second)
+		calculateBatteryPrice(mInfo.Msgobject[0:2])
+		log.Println(getWeather())
+		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
+
+		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
+		if doZoe {
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"ON\"}"}
+			log.Println("ZOE loading started")
+		} else {
+			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"OFF\"}"}
+			log.Println("ZOE loading ended")
+		}
+		doPoessl := onOffByPrice("t3", mInfo.Msgobject)
+		if doPoessl {
+			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_2EF5C7/POWER1", Message: "on"}
+			log.Println("Poessl loading started")
+		} else {
+			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_2EF5C7/POWER1", Message: "off"}
+			log.Println("Poessl loading ended")
+		}
+        doRasenmaeher := onOffByPrice("t2", mInfo.Msgobject)
+    	genVar.Getin <- Requestin{Node: "items", Item: "rasenmaeher_onoff", Value: "state"}
+    	onoff := <-genVar.Getout
+        if doRasenmaeher || onoff == "ON" {
+        	genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "ON"}
+            log.Println("Rasenmaeher loading started")
+        } else {
+        	genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "OFF"}
+         	log.Println("Rasenmaeher loading ended")
+        }
+		doWaschmaschine := onOffByPrice(getItemState("schalter_waschmaschine_zone"), mInfo.Msgobject)
+		if doWaschmaschine {
+			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "on"}
+			log.Println("Waschmaschine on")
+		} else {
+			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "off"}
+			log.Println("Waschmaschine off")
+		}
+		doBoiler := onOffByPrice("t6", mInfo.Msgobject)
+		//doBoiler := onOffByPrice("t4", mInfo.Msgobject)
+		if doBoiler {
+			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "ON"}
+			log.Println("Boiler on")
+		} else {
+			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "OFF"}
+			log.Println("Boiler off")
+		}
+		doLaden_klein := onOffByPrice("t1", mInfo.Msgobject)
+		if doLaden_klein {
+			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_laden_klein", Value: "state", Data: "ON"}
+			genVar.Pers.Set("!LADEN_KLEIN", "ON", cache.NoExpiration)
+			log.Println("Laden_klein on")
+		} else {
+			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_laden_klein", Value: "state", Data: "OFF"}
+			genVar.Pers.Delete("!LADEN_KLEIN")
+			log.Println("Laden_klein off")
+		}
+		pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
+		genVar.Pers.Set("!BalkonPAC", pac, cache.NoExpiration)
+		guest := getItemState("gast_switch")
+		genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
+	}
+
+	// this rule runs at minutes ending at 0 and 5
+	if strings.ContainsAny(mInfo.Msgobject[4:5], "05") {
 		var btLoad string = "X"
 		mt := getItemState("Tibber_mintotal")
 		zone := getItemState("schalter_laden48_zone")
@@ -827,80 +896,9 @@ func chronoEvents(mInfo Msginfo) {
 		debugLog(1, "BtLoad: "+btLoad)
 		if btLoad != "X" {
 			genVar.Pers.Set("!BATTERYLOAD", btLoad, cache.NoExpiration)
-		}
-		return
-	}
-
-	// this rule runs at the first minute of each hour
-	if (mInfo.Msgobject[3:5] == "00" || mInfo.Msgobject[3:5] == "30" || mInfo.Msgobject[3:5] == "15" || mInfo.Msgobject[3:5] == "45") &&
-		mInfo.Msgobject != "00:00" || mInfo.Msgobject == "00:05" {
-		setCurrentPrice(mInfo.Msgobject[0:2], mInfo.Msgobject[3:5])
-		time.Sleep(5 * time.Second)
-		calculateBatteryPrice(mInfo.Msgobject[0:2])
-		log.Println(getWeather())
-		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
-
-		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
-		if doZoe {
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"ON\"}"}
-			log.Println("ZOE loading started")
 		} else {
-			genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x385b44fffe95ca3a/set", Message: "{\"state\":\"OFF\"}"}
-			log.Println("ZOE loading ended")
+			genVar.Pers.Delete("!BATTERYLOAD")
 		}
-		doPoessl := onOffByPrice("t3", mInfo.Msgobject)
-		if doPoessl {
-			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_2EF5C7/POWER1", Message: "on"}
-			log.Println("Poessl loading started")
-		} else {
-			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_2EF5C7/POWER1", Message: "off"}
-			log.Println("Poessl loading ended")
-		}
-                doRasenmaeher := onOffByPrice("t2", mInfo.Msgobject)
-     		genVar.Getin <- Requestin{Node: "items", Item: "rasenmaeher_onoff", Value: "state"}
-        	onoff := <-genVar.Getout
-                if doRasenmaeher || onoff == "ON" {
-                        genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "ON"}
-                        log.Println("Rasenmaeher loading started")
-                } else {
-                        genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "OFF"}
-                        log.Println("Rasenmaeher loading ended")
-                }
-		doWaschmaschine := onOffByPrice(getItemState("schalter_waschmaschine_zone"), mInfo.Msgobject)
-		if doWaschmaschine {
-			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "on"}
-			log.Println("Waschmaschine on")
-		} else {
-			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "off"}
-			log.Println("Waschmaschine off")
-		}
-		doBoiler := onOffByPrice("t6", mInfo.Msgobject)
-		//doBoiler := onOffByPrice("t4", mInfo.Msgobject)
-		if doBoiler {
-			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "ON"}
-			log.Println("Boiler on")
-		} else {
-			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_heisswasser_onoff", Data: "OFF"}
-			log.Println("Boiler off")
-		}
-		doLaden_klein := onOffByPrice("t1", mInfo.Msgobject)
-		if doLaden_klein {
-			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_laden_klein", Value: "state", Data: "ON"}
-			genVar.Pers.Set("!LADEN_KLEIN", "ON", cache.NoExpiration)
-			log.Println("Laden_klein on")
-		} else {
-			genVar.Postin <- Requestin{Node: "items", Item: "Zigbee_Steckdosen_steckdose_laden_klein", Value: "state", Data: "OFF"}
-			genVar.Pers.Delete("!LADEN_KLEIN")
-			log.Println("Laden_klein off")
-		}
-		pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
-		genVar.Pers.Set("!BalkonPAC", pac, cache.NoExpiration)
-		guest := getItemState("gast_switch")
-		genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
-
-
-//		battery("off")
-
 		return
 	}
 
@@ -1263,7 +1261,7 @@ func getPriceIndex(h string, m string) string {
 	if m >= "15" {result = h + "1"}
         if m >= "30" {result = h + "3"}
         if m >= "45" {result = h + "4"}
-	return result  
+	return result
 }
 
 func getSOC() float64 {
