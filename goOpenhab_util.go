@@ -114,17 +114,17 @@ func readJson(inJson string, field string) string {
 }
 
 func json2Openhab(inJson string) {
-        jsonData := []byte(inJson)
+	jsonData := []byte(inJson)
 
-        var result map[string]interface{}
+	var result map[string]interface{}
 
-        if err := json.Unmarshal(jsonData, &result); err != nil {
-                log.Printf("error unmarshalling JSON: %v", err)
+	if err := json.Unmarshal(jsonData, &result); err != nil {
+		log.Printf("error unmarshalling JSON: %v", err)
 		return
-        }
+	}
 
 	for i, eintrag := range result {
-		genVar.Postin <- Requestin{Node: "items", Item: "Tibber_"+i, Data: fmt.Sprintf("%.4f",eintrag)}
+		genVar.Postin <- Requestin{Node: "items", Item: "Tibber_" + i, Data: fmt.Sprintf("%.4f", eintrag)}
 	}
 }
 
@@ -211,31 +211,31 @@ func checkItemAlarm(item string) bool {
 }
 
 func setItemWaitTime(item string, waittime int) {
-        var name string = "!WAIT_" + item
-        d := time.Now().Unix() + int64(waittime)
-        genVar.Pers.Set(name, fmt.Sprintf("%d", d), cache.NoExpiration)
+	var name string = "!WAIT_" + item
+	d := time.Now().Unix() + int64(waittime)
+	genVar.Pers.Set(name, fmt.Sprintf("%d", d), cache.NoExpiration)
 }
 
 func checkItemWait(item string) bool {
-       var name string = "!WAIT_" + item
-        var answer bool = false
-        d := time.Now().Unix() 
-        var tim string
-        var wait int64 = int64(d + 1)
-        if x, found := genVar.Pers.Get(name); found {
-                tim = x.(string)
-                al, err := strconv.ParseInt(tim, 10, 64)
-                if err != nil {
-                        wait = d
-                } else {
-                        wait = al
-                }
-        }
+	var name string = "!WAIT_" + item
+	var answer bool = false
+	d := time.Now().Unix()
+	var tim string
+	var wait int64 = int64(d + 1)
+	if x, found := genVar.Pers.Get(name); found {
+		tim = x.(string)
+		al, err := strconv.ParseInt(tim, 10, 64)
+		if err != nil {
+			wait = d
+		} else {
+			wait = al
+		}
+	}
 
-        if d > wait {
-                answer = true
-        }
-        return answer
+	if d > wait {
+		answer = true
+	}
+	return answer
 }
 
 func iterateAlarms() {
@@ -257,21 +257,20 @@ func iterateAlarms() {
 }
 
 func iterateWaits() {
-        debugLog(7, "iterateWaits")
-        waits := genVar.Pers.Items()
-        for k, v := range waits {
-                if len(k) >= 6 {
-                        if k[0:6] == "!WAIT_" {
-                                item := k[6:]
-                                if checkItemWait(item) {
-                                        log.Printf("key[%s] value[%v]\n", item, v)
-                                        genVar.Pers.Delete(k)
-                                }
-                        }
-                }
-        }
+	debugLog(7, "iterateWaits")
+	waits := genVar.Pers.Items()
+	for k, v := range waits {
+		if len(k) >= 6 {
+			if k[0:6] == "!WAIT_" {
+				item := k[6:]
+				if checkItemWait(item) {
+					log.Printf("key[%s] value[%v]\n", item, v)
+					genVar.Pers.Delete(k)
+				}
+			}
+		}
+	}
 }
-
 
 func setItemOffTime(item string, offtime int) {
 	var name string = "!OFF_" + item
@@ -346,12 +345,30 @@ func getSystemUptime() (float64, error) {
 }
 
 func restartZigbee() {
-        requestURL := fmt.Sprintf("http://192.168.68.61:8090/restart/")
-        log.Println(requestURL)
-        _, err := http.Get(requestURL)
-        if err != nil {
-                log.Printf("client: Zigbee restart error: %s\n", err)
-        }
+	requestURL := fmt.Sprintf("http://192.168.68.61:8090/restart/")
+	log.Println(requestURL)
+	_, err := http.Get(requestURL)
+	if err != nil {
+		log.Printf("client: Zigbee restart error: %s\n", err)
+	}
 }
 
-
+func zendureCmd(method string, device string, value int) {
+	t := time.Now()
+	utc := t.Unix()
+	switch method {
+	case "BLESPP_OK":
+		genVar.Mqttmsg <- Mqttparms{Topic: "ble_zendure/in", Message: fmt.Sprintf("{\"messageId\":\"%d\",\"method\":\"BLESPP_OK\"}", utc)}
+		log.Println("Zendure BLESPP_OK")
+	case "outputLimit":
+		genVar.Mqttmsg <- Mqttparms{Topic: "ble_zendure/in", Message: fmt.Sprintf("{\"method\": \"write\", \"timestamp\": %d, \"messageId\": \"%d\", \"deviceId\": \"%s\", \"properties\": {\"outputLimit\": %d}}", utc, utc, device, value)}
+		log.Printf("Zendure outputLimit value: %d\n", value)
+	case "minSoc":
+		genVar.Mqttmsg <- Mqttparms{Topic: "ble_zendure/in", Message: fmt.Sprintf("{\"method\": \"write\", \"timestamp\": %d, \"messageId\": \"%d\", \"deviceId\": \"%s\", \"properties\": {\"minSoc\": %d}}", utc, utc, device, value)}
+		log.Printf("Zendure minSoc value: %d\n", value)
+	case "socSet":
+		genVar.Mqttmsg <- Mqttparms{Topic: "ble_zendure/in", Message: fmt.Sprintf("{\"method\": \"write\", \"timestamp\": %d, \"messageId\": \"%d\", \"deviceId\": \"%s\", \"properties\": {\"socSet\": %d}}", utc, utc, device, value)}
+		log.Printf("Zendure socLevel value: %d\n", value)
+	default:
+	}
+}

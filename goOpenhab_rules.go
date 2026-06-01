@@ -17,8 +17,8 @@ func processRulesInfo(mInfo Msginfo) {
 	msgLog(mInfo)
 
 	if mInfo.Msgevent == "openhab.event.ItemCommandEvent" ||
-	   mInfo.Msgevent == "penhab.event.ItemStatePredictedEvent" ||
-	   mInfo.Msgevent == "ab.event.ThingStatusInfoChangedEvent" {
+		mInfo.Msgevent == "penhab.event.ItemStatePredictedEvent" ||
+		mInfo.Msgevent == "ab.event.ThingStatusInfoChangedEvent" {
 		return
 	}
 
@@ -40,25 +40,44 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	if mInfo.Msgobject == "Zendure_soc" {
+		zendure.soc, _ = strconv.ParseInt(mInfo.Msgnewstate, 10,64)
+		return
+	}
+
+	if mInfo.Msgobject == "Zendure_outputHomePower" {
+		zendure.outputHomePower, _ = strconv.ParseInt(mInfo.Msgnewstate, 10, 64)
+		return
+	}
+
+	if mInfo.Msgobject == "Zendure_outputPackPower" {
+		zendure.outputPackPower, _ = strconv.ParseInt(mInfo.Msgnewstate, 10, 64)
+		return
+	}
+
+	if mInfo.Msgobject == "Zendure_solarInputPower" {
+		zendure.solarInputPower, _ = strconv.ParseInt(mInfo.Msgnewstate, 10, 64)
+		return
+	}
+
 	if mInfo.Msgobject == "tibber2mqtt/prices/" {
-//		log.Printf("%s;%s;%s;%s;%s", mInfo.Msgevent, mInfo.Msgobjtype, mInfo.Msgobject, mInfo.Msgoldstate, mInfo.Msgnewstate)
+		//		log.Printf("%s;%s;%s;%s;%s", mInfo.Msgevent, mInfo.Msgobjtype, mInfo.Msgobject, mInfo.Msgoldstate, mInfo.Msgnewstate)
 		json2Openhab(mInfo.Msgnewstate)
 		return
 	}
 
+	//	if mInfo.Msgobject == "Tibber_Aktueller_Preis" {
+	//		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Data: mInfo.Msgnewstate}
+	//		log.Println("Aktueller Preis:", mInfo.Msgnewstate)
+	//	}
 
-//	if mInfo.Msgobject == "Tibber_Aktueller_Preis" {
-//		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Data: mInfo.Msgnewstate}
-//		log.Println("Aktueller Preis:", mInfo.Msgnewstate)
-//	}
-
-        if mInfo.Msgobject == "Tibber_Aktueller_Verbrauch" {
-                if mInfo.Msgnewstate == "0.001" {
+	if mInfo.Msgobject == "Tibber_Aktueller_Verbrauch" {
+		if mInfo.Msgnewstate == "0.001" {
 			log.Println("Trigger1 gefunden")
 			genVar.Pers.Set("!TIBBER-TRIGGER", "J", cache.NoExpiration)
 		}
-                if mInfo.Msgnewstate == "-0.001" {
-        		_, found := genVar.Pers.Get("!TIBBER-TRIGGER")
+		if mInfo.Msgnewstate == "-0.001" {
+			_, found := genVar.Pers.Get("!TIBBER-TRIGGER")
 			_, y := genVar.Pers.Get("!WAIT_Tibber_Aktueller_Verbrauch")
 			log.Println("Trigger2 gefunden:", found, y)
 			if found && !y {
@@ -224,18 +243,18 @@ func processRulesInfo(mInfo Msginfo) {
 	// telegram, if front door is opened
 	if mInfo.Msgobject == "FHEM_Haustuer" && mInfo.Msgnewstate == "ON" {
 		log.Println("Haustuer geoeffnet")
-//		genVar.Telegram <- "Haustür wurde geöffnet"
+		//		genVar.Telegram <- "Haustür wurde geöffnet"
 		matrixSend("Haustür wurde geöffnet")
 		return
 	}
 
-        // start garage engine
-        if mInfo.Msgobject == "Schalter_Zigbee_Schalter_Garage" && mInfo.Msgnewstate == "ON" {
-                log.Println("Start Garagenmotor")
-                time.Sleep(3 * time.Second)
-                genVar.Postin <- Requestin{Node: "items", Item: mInfo.Msgobject, Data: "OFF"}
-                return
-        }
+	// start garage engine
+	if mInfo.Msgobject == "Schalter_Zigbee_Schalter_Garage" && mInfo.Msgnewstate == "ON" {
+		log.Println("Start Garagenmotor")
+		time.Sleep(3 * time.Second)
+		genVar.Postin <- Requestin{Node: "items", Item: mInfo.Msgobject, Data: "OFF"}
+		return
+	}
 
 	// store pv forecast in item
 	if mInfo.Msgevent == "pvforecast.watthours.event" {
@@ -262,7 +281,7 @@ func processRulesInfo(mInfo Msginfo) {
 			debugLog(3, "Open Rolladen Joerg")
 			debugLog(3, "Open Rolladen Buero")
 		}
-//		genVar.Telegram <- "Sonnenaufgang"
+		//		genVar.Telegram <- "Sonnenaufgang"
 		matrixSend("Sonnenaufgang")
 		return
 	}
@@ -287,26 +306,24 @@ func processRulesInfo(mInfo Msginfo) {
 			debugLog(3, "Close Rolladen Buero")
 			debugLog(3, "Close Rolladen Bad")
 		}
-//		genVar.Telegram <- "Sonnenuntergang"
+		//		genVar.Telegram <- "Sonnenuntergang"
 		matrixSend("Sonnenuntergang")
 		return
 	}
 
-
-// Rasenmaeher onoff
-        if mInfo.Msgobject == "rasenmaeher_onoff" {
+	// Rasenmaeher onoff
+	if mInfo.Msgobject == "rasenmaeher_onoff" {
 		log.Println("Rasenmaeher", mInfo.Msgnewstate)
 		switch mInfo.Msgnewstate {
 		case "ON":
 			genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "ON"}
-                case "OFF":
-                        genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "OFF"}
+		case "OFF":
+			genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "OFF"}
 		default:
 			return
 		}
 		return
 	}
-
 
 	// perform actions for several switches
 	if mInfo.Msgobject == "Schalter_Rolladen_Gast_Action" {
@@ -415,21 +432,21 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
-        // perform actions for pushbutton Terrasse via MQTT
-        if mInfo.Msgobject == "zigbee2mqtt/0x00158d0007dcc9a4" {
-                action := readJson(mInfo.Msgnewstate, "action")
-                log.Println("Pushbutton Terrasse: ", action)
-                switch action {
-                case "single":
-                        itemToggle("Schalter_Zigbee_Schalter_Brunnen")
-                case "double":
-    //                    itemToggle("Licht_Zigbee_licht_flur_eg_onoff")
-                case "hold":
-    //                    itemToggle("Schalter_Schlafzimmer_EinAus")
-                default:
-                }
-                return
-        }
+	// perform actions for pushbutton Terrasse via MQTT
+	if mInfo.Msgobject == "zigbee2mqtt/0x00158d0007dcc9a4" {
+		action := readJson(mInfo.Msgnewstate, "action")
+		log.Println("Pushbutton Terrasse: ", action)
+		switch action {
+		case "single":
+			itemToggle("Schalter_Zigbee_Schalter_Brunnen")
+		case "double":
+			//                    itemToggle("Licht_Zigbee_licht_flur_eg_onoff")
+		case "hold":
+			//                    itemToggle("Schalter_Schlafzimmer_EinAus")
+		default:
+		}
+		return
+	}
 
 	// perform actions for pushbutton Brigitte via MQTT
 	if mInfo.Msgobject == "zigbee2mqtt/0x00158d0007c0cbf2" {
@@ -701,10 +718,10 @@ func processRulesInfo(mInfo Msginfo) {
 			return true // keep iterating
 		})
 		log.Printf("Zigbee Summe Leaves: %.2f  Summe Messages: %.2f\n", summe, messages)
-                if messages < float64(300) {
-                        genVar.Telegram <- "Zigbee neu gestartet"
-                        restartZigbee()
-                }
+		if messages < float64(300) {
+			genVar.Telegram <- "Zigbee neu gestartet"
+			restartZigbee()
+		}
 	}
 }
 
@@ -761,6 +778,12 @@ func chronoEvents(mInfo Msginfo) {
 	debugLog(5, fmt.Sprint("cmd: ", cmd))
 	battery(cmd)
 
+	if zendure.soc > 95 {
+		zendureCmd("outputLimit", "6h0TduV3", int(zendure.solarInputPower))
+	} else if zendure.soc < 20 {
+		zendureCmd("outputLimit", "6h0TduV3", int(0))
+	}
+
 	go iterateOffs()
 	go iterateAlarms()
 	go iterateWaits()
@@ -773,12 +796,12 @@ func chronoEvents(mInfo Msginfo) {
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c13843caca9572/set", Message: "{\"state\":\"OFF\"}"}
 		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0xa4c138c1f0eacf1d/set", Message: "{\"state\":\"OFF\"}"}
 	}
-    if mInfo.Msgobject == "22:00" {
-        log.Println("Switch Springbrunnen off")
-        genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x2486022aedca0000/set", Message: "{\"state_l1\":\"OFF\"}"}
-        log.Println("Switch Rasenmaeher off")
-        genVar.Postin <- Requestin{Node: "items", Item: "rasenmaeher_onoff", Data: "OFF"}
-    }
+	if mInfo.Msgobject == "22:00" {
+		log.Println("Switch Springbrunnen off")
+		genVar.Mqttmsg <- Mqttparms{Topic: "zigbee2mqtt/0x2486022aedca0000/set", Message: "{\"state\":\"OFF\"}"}
+		log.Println("Switch Rasenmaeher off")
+		genVar.Postin <- Requestin{Node: "items", Item: "rasenmaeher_onoff", Data: "OFF"}
+	}
 
 	// reboot fritzbox every 2 days at 03.17
 	/*	if mInfo.Msgobject == "03:17" {
@@ -795,6 +818,9 @@ func chronoEvents(mInfo Msginfo) {
 		mInfo.Msgobject != "00:00" || mInfo.Msgobject == "00:05" {
 		setCurrentPrice(mInfo.Msgobject[0:2], mInfo.Msgobject[3:5])
 		time.Sleep(5 * time.Second)
+
+//		zendureCmd("write", "6h0TduV3", 100)
+
 		calculateBatteryPrice(mInfo.Msgobject[0:2])
 		log.Println(getWeather())
 		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
@@ -815,16 +841,16 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_2EF5C7/POWER1", Message: "off"}
 			log.Println("Poessl loading ended")
 		}
-        doRasenmaeher := onOffByPrice("t2", mInfo.Msgobject)
-    	genVar.Getin <- Requestin{Node: "items", Item: "rasenmaeher_onoff", Value: "state"}
-    	onoff := <-genVar.Getout
-        if doRasenmaeher || onoff == "ON" {
-        	genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "ON"}
-            log.Println("Rasenmaeher loading started")
-        } else {
-        	genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "OFF"}
-         	log.Println("Rasenmaeher loading ended")
-        }
+		doRasenmaeher := onOffByPrice("t2", mInfo.Msgobject)
+		genVar.Getin <- Requestin{Node: "items", Item: "rasenmaeher_onoff", Value: "state"}
+		onoff := <-genVar.Getout
+		if doRasenmaeher || onoff == "ON" {
+			genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "ON"}
+			log.Println("Rasenmaeher loading started")
+		} else {
+			genVar.Postin <- Requestin{Node: "items", Item: "Schalter_Zigbee_Schalter_Rasenmaeher", Data: "OFF"}
+			log.Println("Rasenmaeher loading ended")
+		}
 		doWaschmaschine := onOffByPrice(getItemState("schalter_waschmaschine_zone"), mInfo.Msgobject)
 		if doWaschmaschine {
 			genVar.Mqttmsg <- Mqttparms{Topic: "cmnd/tasmota_68865C/POWER1", Message: "on"}
@@ -904,6 +930,9 @@ func chronoEvents(mInfo Msginfo) {
 
 	// this rule runs at minutes ending at 1
 	if strings.ContainsAny(mInfo.Msgobject[4:5], "1") {
+
+//		zendureCmd("write", "6h0TduV3", 200)
+
 		gast := getItemState("FHEM_Gast_da")
 		log.Println("Gast:", gast[0:2])
 		if gast[0:2] == "ja" {
@@ -982,7 +1011,26 @@ func rulesInit() int {
 
 	rules_active = true
 
-//	genVar.Telegram <- "goOpenhab initialized"
+	zendureCmd("BLESPP_OK", "6h0TduV3", 0)
+	time.Sleep(time.Second)
+	zendureCmd("minSoc", "6h0TduV3", 100)
+	time.Sleep(time.Second)
+	zendureCmd("socSet", "6h0TduV3", 970)
+
+	genVar.Getin <- Requestin{Node: "items", Item: "Zendure_soc", Value: "state"}
+	tempStr := <-genVar.Getout
+	zendure.soc, _ = strconv.ParseInt(tempStr, 10, 64)
+	genVar.Getin <- Requestin{Node: "items", Item: "Zendure_solarInputPower", Value: "state"}
+	tempStr = <-genVar.Getout
+	zendure.solarInputPower, _ = strconv.ParseInt(tempStr, 10, 64)
+	genVar.Getin <- Requestin{Node: "items", Item: "Zendure_outputHomePower", Value: "state"}
+	tempStr = <-genVar.Getout
+	zendure.outputHomePower, _ = strconv.ParseInt(tempStr, 10, 64)
+	genVar.Getin <- Requestin{Node: "items", Item: "Zendure_outputPackPower", Value: "state"}
+	tempStr = <-genVar.Getout
+	zendure.outputPackPower, _ = strconv.ParseInt(tempStr, 10, 64)
+
+	//	genVar.Telegram <- "goOpenhab initialized"
 	matrixSend("goOpenhab initialized")
 	return 0
 }
@@ -1029,21 +1077,21 @@ func calculateBatteryPrice(hour string) {
 			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
-                        price = getItemState(fmt.Sprintf("Tibber_total%02d1", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
-                        price = getItemState(fmt.Sprintf("Tibber_total%02d3", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
-                        price = getItemState(fmt.Sprintf("Tibber_total%02d4", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
+			price = getItemState(fmt.Sprintf("Tibber_total%02d1", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
+			price = getItemState(fmt.Sprintf("Tibber_total%02d3", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
+			price = getItemState(fmt.Sprintf("Tibber_total%02d4", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
 		}
 	}
 	if hour <= "11" && hour > "00" && !boolWeather {
@@ -1053,21 +1101,21 @@ func calculateBatteryPrice(hour string) {
 			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
-                       price = getItemState(fmt.Sprintf("Tibber_total%02d1", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
-                       price = getItemState(fmt.Sprintf("Tibber_total%02d3", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
-                       price = getItemState(fmt.Sprintf("Tibber_total%02d4", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
+			price = getItemState(fmt.Sprintf("Tibber_total%02d1", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
+			price = getItemState(fmt.Sprintf("Tibber_total%02d3", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
+			price = getItemState(fmt.Sprintf("Tibber_total%02d4", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
 		}
 	}
 	if hour == "00" {
@@ -1077,21 +1125,21 @@ func calculateBatteryPrice(hour string) {
 			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
-                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d1", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
-                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d3", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
-                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d4", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
+			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d1", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
+			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d3", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
+			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d4", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
 		}
 	}
 	if hour > "20" {
@@ -1101,21 +1149,21 @@ func calculateBatteryPrice(hour string) {
 			if flPrice > flZone {
 				prices = append(prices, flPrice)
 			}
-                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d1", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
-                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d3", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
-                        price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d4", i))
-                        flPrice, _ = strconv.ParseFloat(price, 64)
-                        if flPrice > flZone {
-                                prices = append(prices, flPrice)
-                        }
+			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d1", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
+			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d3", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
+			price = getItemState(fmt.Sprintf("Tibber_tomorrow%02d4", i))
+			flPrice, _ = strconv.ParseFloat(price, 64)
+			if flPrice > flZone {
+				prices = append(prices, flPrice)
+			}
 		}
 	}
 	sort.Float64s(prices)
@@ -1235,32 +1283,38 @@ func judgePvForecast(search string) bool {
 }
 
 func setCurrentPrice(h string, m string) {
-	   index := getPriceIndex(h, m)
-	   item := "Tibber_total" + index
+	index := getPriceIndex(h, m)
+	item := "Tibber_total" + index
 
-	   if h == "000" {
-	   	item = "Tibber_tomorrow00"
-	   }
+	if h == "000" {
+		item = "Tibber_tomorrow00"
+	}
 
-	   log.Println(item)
-	   genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
-	   answer := <-genVar.Getout
-	   log.Println(answer)
+	log.Println(item)
+	genVar.Getin <- Requestin{Node: "items", Item: item, Value: "state"}
+	answer := <-genVar.Getout
+	log.Println(answer)
 
-	   if answer != "" {
-	   	genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
+	if answer != "" {
+		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
 		genVar.Postin <- Requestin{Node: "items", Item: "Tibber_Aktueller_Preis", Value: "state", Data: answer}
-	   } else {
-	   	genVar.Telegram <- "goOpenhab current price not set"
-	   }
+	} else {
+		genVar.Telegram <- "goOpenhab current price not set"
+	}
 }
 
 func getPriceIndex(h string, m string) string {
 	var result string
-	result = h + "0";
-	if m >= "15" {result = h + "1"}
-        if m >= "30" {result = h + "3"}
-        if m >= "45" {result = h + "4"}
+	result = h + "0"
+	if m >= "15" {
+		result = h + "1"
+	}
+	if m >= "30" {
+		result = h + "3"
+	}
+	if m >= "45" {
+		result = h + "4"
+	}
 	return result
 }
 
@@ -1288,8 +1342,8 @@ func getSOCstr() string {
 	if found {
 		SOC = x.(string)
 		if !isNumDot(SOC) {
-                	SOC = getItemState("battery_can_SOC")
-                	genVar.Pers.Set("SOC", SOC, cache.NoExpiration)
+			SOC = getItemState("battery_can_SOC")
+			genVar.Pers.Set("SOC", SOC, cache.NoExpiration)
 		}
 	} else {
 		SOC = getItemState("battery_can_SOC")
@@ -1342,16 +1396,16 @@ func setHeating(actor string, desired string, sensor string) int {
 }
 
 func isNumDot(s string) bool {
-    dotFound := false
-    for _, v := range s {
-        if v == '.' {
-            if dotFound {
-                return false
-            }
-            dotFound = true
-        } else if v < '0' || v > '9' {
-            return false
-        }
-    }
-    return true
+	dotFound := false
+	for _, v := range s {
+		if v == '.' {
+			if dotFound {
+				return false
+			}
+			dotFound = true
+		} else if v < '0' || v > '9' {
+			return false
+		}
+	}
+	return true
 }

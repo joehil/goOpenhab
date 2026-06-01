@@ -36,35 +36,35 @@ type Requestin struct {
 }
 
 type Generalvars struct {
-	Pers          *cache.Cache
-	Telegram      chan string
-	Tbtoken       string
-	Chatid        int64
-	Mqttmsg       chan Mqttparms
-	Mqttbroker    string
-	Resturl       string
-	Resttoken     string
-	Getin         chan Requestin
-	Getout        chan string
-	Postin        chan Requestin
-	PVurl         string
-	PVApiToken    string
-	PVlongitude   string
-	PVlatitude    string
-	PVdeclination string
-	PVazimuth     string
-	PVkw          string
-	machineNet    string
-	localNet      string
-	interNet      string
-	MMuserid      string
-	MMpassw       string
-	MMcountry     string
-	MMpostcode    string
-	matrix_homeserver	string
-	matrix_username		string
-	matrix_password		string
-	matrix_roomID		string
+	Pers              *cache.Cache
+	Telegram          chan string
+	Tbtoken           string
+	Chatid            int64
+	Mqttmsg           chan Mqttparms
+	Mqttbroker        string
+	Resturl           string
+	Resttoken         string
+	Getin             chan Requestin
+	Getout            chan string
+	Postin            chan Requestin
+	PVurl             string
+	PVApiToken        string
+	PVlongitude       string
+	PVlatitude        string
+	PVdeclination     string
+	PVazimuth         string
+	PVkw              string
+	machineNet        string
+	localNet          string
+	interNet          string
+	MMuserid          string
+	MMpassw           string
+	MMcountry         string
+	MMpostcode        string
+	matrix_homeserver string
+	matrix_username   string
+	matrix_password   string
+	matrix_roomID     string
 }
 
 type Timevars struct {
@@ -77,4 +77,11 @@ type Timevars struct {
 	weekday   time.Weekday
 	yearday   int
 	dayminute int
+}
+
+type Zendure struct {
+	soc             int64
+	outputPackPower int64
+	outputHomePower int64
+	solarInputPower int64
 }
