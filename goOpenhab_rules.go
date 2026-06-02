@@ -86,10 +86,23 @@ func processRulesInfo(mInfo Msginfo) {
 			}
 			genVar.Pers.Delete("!TIBBER-TRIGGER")
 		}
+		hems.currPower, _ = strconv.ParseInt(mInfo.Msgnewstate, 10, 64)
 	}
 
 	// Process current power
 	if mInfo.Msgobject == "Tibber_Aktueller_Verbrauch" {
+
+		if hems.batGarageActive {
+			newPower := float64(zendure.outputHomePower + hems.currPower)
+			if newPower > 800 {
+				newPower = 800
+			}
+			if newPower < 0 {
+				newPower = 0
+			}
+			zendureCmd("outputLimit", "6h0TduV3", int(newPower))
+		}
+
 		var flInverter float64
 		flNew, _ := strconv.ParseFloat(mInfo.Msgnewstate, 64)
 		sEinAus := getItemState("Soyosource_EinAus")
@@ -780,8 +793,24 @@ func chronoEvents(mInfo Msginfo) {
 
 	if zendure.soc > 95 {
 		zendureCmd("outputLimit", "6h0TduV3", int(zendure.solarInputPower))
+		if zendure.solarInputPower == 0 {
+			zendureCmd("outputLimit", "6h0TduV3", int(400))
+		}
+		hems.batGarageActive = false
 	} else if zendure.soc < 20 {
 		zendureCmd("outputLimit", "6h0TduV3", int(0))
+		hems.batGarageActive = false
+	}
+
+	if hems.batGarageActive {
+		newPower := float64(zendure.outputHomePower + hems.currPower)
+		if newPower > 800 {
+			newPower = 800
+		}
+		if newPower < 0 {
+			newPower = 0
+		}
+		zendureCmd("outputLimit", "6h0TduV3", int(newPower))
 	}
 
 	go iterateOffs()
@@ -819,11 +848,18 @@ func chronoEvents(mInfo Msginfo) {
 		setCurrentPrice(mInfo.Msgobject[0:2], mInfo.Msgobject[3:5])
 		time.Sleep(5 * time.Second)
 
-//		zendureCmd("write", "6h0TduV3", 100)
-
-		calculateBatteryPrice(mInfo.Msgobject[0:2])
+		hems.batGaragePrice = calculateBatteryPrice(mInfo.Msgobject[0:2], float64(zendure.soc))
+		hems.batKellerPrice = calculateBatteryPrice(mInfo.Msgobject[0:2], getSOC())
 		log.Println(getWeather())
 		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
+
+		if hems.currPrice > hems.batGaragePrice {
+			hems.batGarageActive = true
+		} else {
+			hems.batGarageActive = false
+		}
+
+//		hems.batGarageActive = true           // zum Test
 
 		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
 		if doZoe {
@@ -973,7 +1009,8 @@ func rulesInit() int {
 	lEinAus := getItemState("Laden_48_EinAus")
 	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.NoExpiration)
 	log.Println("Laden_48_EinAus stored: ", lEinAus)
-	calculateBatteryPrice(fmt.Sprintf("%02d", hour))
+	hems.batGaragePrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), float64(zendure.soc))
+	hems.batKellerPrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), getSOC())
 	pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
 	genVar.Pers.Set("!BalkonPAC", pac, cache.NoExpiration)
 	log.Println("BalkonPAC stored: ", pac)
@@ -1037,8 +1074,8 @@ func rulesInit() int {
 
 // special functions as a support to make relatively short rules
 
-func calculateBatteryPrice(hour string) {
-	var flSoc float64
+func calculateBatteryPrice(hour string, flSoc float64) float64 {
+//	var flSoc float64
 	var flZone float64
 	var prices []float64
 	var price string
@@ -1048,7 +1085,7 @@ func calculateBatteryPrice(hour string) {
 	//	boolWeather := judgeWeather(4)
 	boolWeather := judgePvForecast("2500")
 	//soc := getItemState("Solarakku_SOC")
-	soc := getSOCstr()
+//	soc := getSOCstr()
 	zone := getItemState("Tibber_avg7")
 	if zone == "0" {
 		zone = getItemState("Tibber_m1")
@@ -1060,7 +1097,7 @@ func calculateBatteryPrice(hour string) {
 	if flZone > float64(0.30) {
 		flZone = float64(0.30)
 	}
-	flSoc, _ = strconv.ParseFloat(soc, 64)
+//	flSoc, _ = strconv.ParseFloat(soc, 64)
 	// flSoc -= 50
 	flSoc -= 28
 	if flSoc < float64(0) {
@@ -1181,6 +1218,8 @@ func calculateBatteryPrice(hour string) {
 	log.Println(prices)
 	genVar.Pers.Set("!BAT_PRICE", price, cache.NoExpiration)
 	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: price}
+	retPrice, _ := strconv.ParseFloat(price, 64)
+	return retPrice
 }
 
 func battery(cmd string) {
@@ -1298,6 +1337,7 @@ func setCurrentPrice(h string, m string) {
 	if answer != "" {
 		genVar.Postin <- Requestin{Node: "items", Item: "curr_price", Value: "state", Data: answer}
 		genVar.Postin <- Requestin{Node: "items", Item: "Tibber_Aktueller_Preis", Value: "state", Data: answer}
+		hems.currPrice, _ = strconv.ParseFloat(answer, 64)
 	} else {
 		genVar.Telegram <- "goOpenhab current price not set"
 	}

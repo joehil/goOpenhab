@@ -39,6 +39,7 @@ var doorlockPwds []string
 var genVar Generalvars
 var timeVar Timevars
 var zendure Zendure
+var hems HEMS
 
 func main() {
 	// Set location of config

@@ -85,3 +85,12 @@ type Zendure struct {
 	outputHomePower int64
 	solarInputPower int64
 }
+
+type HEMS struct {
+	currPower int64
+	currPrice float64
+	batKellerPrice float64
+	batGaragePrice float64
+	batKellerActive bool
+	batGarageActive bool
+}
