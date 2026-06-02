@@ -791,12 +791,13 @@ func chronoEvents(mInfo Msginfo) {
 	debugLog(5, fmt.Sprint("cmd: ", cmd))
 	battery(cmd)
 
-	if zendure.soc > 95 {
+	if zendure.soc > 96 {
+		zendureCmd("outputLimit", "6h0TduV3", int(800))
+	} else if zendure.soc > 95 {
 		zendureCmd("outputLimit", "6h0TduV3", int(zendure.solarInputPower))
 		if zendure.solarInputPower == 0 {
 			zendureCmd("outputLimit", "6h0TduV3", int(400))
 		}
-		hems.batGarageActive = false
 	} else if zendure.soc < 20 {
 		zendureCmd("outputLimit", "6h0TduV3", int(0))
 		hems.batGarageActive = false
@@ -836,7 +837,7 @@ func chronoEvents(mInfo Msginfo) {
 	/*	if mInfo.Msgobject == "03:17" {
 		d := time.Now()
 		day := d.Day()
-		if day%2 == 0 {
+		if day%2 == 0
 			log.Println("Reboot Fritzbox")
 			exec_cmd("/opt/homeautomation/fritzbox_reboot.sh")
 		}
@@ -849,7 +850,11 @@ func chronoEvents(mInfo Msginfo) {
 		time.Sleep(5 * time.Second)
 
 		hems.batGaragePrice = calculateBatteryPrice(mInfo.Msgobject[0:2], float64(zendure.soc))
+		genVar.Postin <- Requestin{Node: "items", Item: "battery_price_garage", Data: fmt.Sprintf("%.4f",hems.batGaragePrice)}
+
 		hems.batKellerPrice = calculateBatteryPrice(mInfo.Msgobject[0:2], getSOC())
+		genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: fmt.Sprintf("%.4f",hems.batKellerPrice)}
+
 		log.Println(getWeather())
 		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
 
@@ -857,6 +862,7 @@ func chronoEvents(mInfo Msginfo) {
 			hems.batGarageActive = true
 		} else {
 			hems.batGarageActive = false
+			zendureCmd("outputLimit", "6h0TduV3", int(0))
 		}
 
 //		hems.batGarageActive = true           // zum Test
@@ -1010,7 +1016,9 @@ func rulesInit() int {
 	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.NoExpiration)
 	log.Println("Laden_48_EinAus stored: ", lEinAus)
 	hems.batGaragePrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), float64(zendure.soc))
+	genVar.Postin <- Requestin{Node: "items", Item: "battery_price_garage", Data: fmt.Sprintf("%.4f",hems.batGaragePrice)}
 	hems.batKellerPrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), getSOC())
+	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: fmt.Sprintf("%.4f",hems.batKellerPrice)}
 	pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
 	genVar.Pers.Set("!BalkonPAC", pac, cache.NoExpiration)
 	log.Println("BalkonPAC stored: ", pac)
@@ -1053,6 +1061,8 @@ func rulesInit() int {
 	zendureCmd("minSoc", "6h0TduV3", 100)
 	time.Sleep(time.Second)
 	zendureCmd("socSet", "6h0TduV3", 970)
+	time.Sleep(time.Second)
+	zendureCmd("outputLimit", "6h0TduV3", int(0))
 
 	genVar.Getin <- Requestin{Node: "items", Item: "Zendure_soc", Value: "state"}
 	tempStr := <-genVar.Getout
@@ -1217,7 +1227,7 @@ func calculateBatteryPrice(hour string, flSoc float64) float64 {
 	log.Println("Bat-Price: ", price, hours)
 	log.Println(prices)
 	genVar.Pers.Set("!BAT_PRICE", price, cache.NoExpiration)
-	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: price}
+//	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: price}
 	retPrice, _ := strconv.ParseFloat(price, 64)
 	return retPrice
 }
