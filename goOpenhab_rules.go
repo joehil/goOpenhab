@@ -60,6 +60,11 @@ func processRulesInfo(mInfo Msginfo) {
 		return
 	}
 
+	if mInfo.Msgobject == "Zendure_packInputPower" {
+		zendure.packInputPower, _ = strconv.ParseInt(mInfo.Msgnewstate, 10, 64)
+		return
+	}
+
 	if mInfo.Msgobject == "tibber2mqtt/prices/" {
 		//		log.Printf("%s;%s;%s;%s;%s", mInfo.Msgevent, mInfo.Msgobjtype, mInfo.Msgobject, mInfo.Msgoldstate, mInfo.Msgnewstate)
 		json2Openhab(mInfo.Msgnewstate)
@@ -793,20 +798,20 @@ func chronoEvents(mInfo Msginfo) {
 
 	if zendure.soc > 96 {
 		zendureCmd("outputLimit", "6h0TduV3", int(800))
-		duckDB_insert("6h0TduV3", 0, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
+		duckDB_insert("6h0TduV3", zendure.packInputPower, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
 			zendure.soc)
 	} else if zendure.soc > 95 {
 		zendureCmd("outputLimit", "6h0TduV3", int(zendure.solarInputPower))
-		duckDB_insert("6h0TduV3", 0, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
+		duckDB_insert("6h0TduV3", zendure.packInputPower, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
 			zendure.soc)
 		if zendure.solarInputPower == 0 {
 			zendureCmd("outputLimit", "6h0TduV3", int(400))
-			duckDB_insert("6h0TduV3", 0, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
+			duckDB_insert("6h0TduV3", zendure.packInputPower, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
 				zendure.soc)
 		}
 	} else if zendure.soc < 20 {
 		zendureCmd("outputLimit", "6h0TduV3", int(0))
-		duckDB_insert("6h0TduV3", 0, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
+		duckDB_insert("6h0TduV3", zendure.packInputPower, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
 			zendure.soc)
 		hems.batGarageActive = false
 	}

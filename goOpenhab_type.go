@@ -81,16 +81,17 @@ type Timevars struct {
 
 type Zendure struct {
 	soc             int64
+	packInputPower  int64
 	outputPackPower int64
 	outputHomePower int64
 	solarInputPower int64
 }
 
 type HEMS struct {
-	currPower int64
-	currPrice float64
-	batKellerPrice float64
-	batGaragePrice float64
+	currPower       int64
+	currPrice       float64
+	batKellerPrice  float64
+	batGaragePrice  float64
 	batKellerActive bool
 	batGarageActive bool
 }

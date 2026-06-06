@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"time"
 
 	_ "github.com/duckdb/duckdb-go/v2"
 )
@@ -34,12 +35,11 @@ func duckDB_insert(device string, packInputPower int64, outputPackPower int64,
 		log.Println(err)
 	}
 	defer db.Close()
-	/*
-	   _, err = db.Exec(`INSERT INTO main.energy
 
-	   	(tstamp, device, packInputPower, outputPackPower, outputHomePower, solarInputPower, soc)
-	   	values (NOW(), device, packInputPower,
-	   	outputPackPower, outputHomePower, solarInputPower, soc)`)
-	   	log.Println(err)
-	*/
+	stmt, err := db.Prepare("INSERT INTO main.energy values (?, ?, ?, ?, ?, ?, ?)")
+
+	_, err = stmt.Exec(time.Now().Local(), device, packInputPower, outputPackPower, outputHomePower, solarInputPower, soc)
+	if err != nil {
+		log.Println(err)
+	}
 }
