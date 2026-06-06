@@ -35,6 +35,7 @@ var dfile *os.File
 var doorlockSecrets []int
 var doorlockTags []string
 var doorlockPwds []string
+var duckDBPath string
 
 var genVar Generalvars
 var timeVar Timevars
@@ -177,6 +178,9 @@ func procRun() {
 
 	go checkDocker()
 	traceLog("checkDocker server was initialized")
+
+	go duckDB_init()
+	traceLog("duckDB was initialized")
 
 	// Inform about trace
 	log.Println("Trace set to: ", do_trace)
@@ -353,15 +357,16 @@ func read_config() {
 	genVar.MMcountry = viper.GetString("meteomatics_country")
 	genVar.MMpostcode = viper.GetString("meteomatics_postcode")
 
-        genVar.matrix_homeserver = viper.GetString("matrix_homeserver")
-        genVar.matrix_username = viper.GetString("matrix_username")
-        genVar.matrix_password = viper.GetString("matrix_password")
-        genVar.matrix_roomID = viper.GetString("matrix_roomID")
-
+	genVar.matrix_homeserver = viper.GetString("matrix_homeserver")
+	genVar.matrix_username = viper.GetString("matrix_username")
+	genVar.matrix_password = viper.GetString("matrix_password")
+	genVar.matrix_roomID = viper.GetString("matrix_roomID")
 
 	doorlockSecrets = viper.GetIntSlice("doorlock_secrets")
 	doorlockTags = viper.GetStringSlice("doorlock_tags")
 	doorlockPwds = viper.GetStringSlice("doorlock_pwds")
+
+	duckDBPath = viper.GetString("duckDBPath")
 
 	if do_trace {
 		log.Println("do_trace: ", do_trace)

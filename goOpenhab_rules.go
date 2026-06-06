@@ -41,7 +41,7 @@ func processRulesInfo(mInfo Msginfo) {
 	}
 
 	if mInfo.Msgobject == "Zendure_soc" {
-		zendure.soc, _ = strconv.ParseInt(mInfo.Msgnewstate, 10,64)
+		zendure.soc, _ = strconv.ParseInt(mInfo.Msgnewstate, 10, 64)
 		return
 	}
 
@@ -793,13 +793,21 @@ func chronoEvents(mInfo Msginfo) {
 
 	if zendure.soc > 96 {
 		zendureCmd("outputLimit", "6h0TduV3", int(800))
+		duckDB_insert("6h0TduV3", 0, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
+			zendure.soc)
 	} else if zendure.soc > 95 {
 		zendureCmd("outputLimit", "6h0TduV3", int(zendure.solarInputPower))
+		duckDB_insert("6h0TduV3", 0, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
+			zendure.soc)
 		if zendure.solarInputPower == 0 {
 			zendureCmd("outputLimit", "6h0TduV3", int(400))
+			duckDB_insert("6h0TduV3", 0, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
+				zendure.soc)
 		}
 	} else if zendure.soc < 20 {
 		zendureCmd("outputLimit", "6h0TduV3", int(0))
+		duckDB_insert("6h0TduV3", 0, zendure.outputPackPower, zendure.outputHomePower, zendure.solarInputPower,
+			zendure.soc)
 		hems.batGarageActive = false
 	}
 
@@ -812,6 +820,10 @@ func chronoEvents(mInfo Msginfo) {
 			newPower = 0
 		}
 		zendureCmd("outputLimit", "6h0TduV3", int(newPower))
+	}
+
+	if hems.currPower < int64(-50) {
+		battery("load")
 	}
 
 	go iterateOffs()
@@ -850,22 +862,22 @@ func chronoEvents(mInfo Msginfo) {
 		time.Sleep(5 * time.Second)
 
 		hems.batGaragePrice = calculateBatteryPrice(mInfo.Msgobject[0:2], float64(zendure.soc))
-		genVar.Postin <- Requestin{Node: "items", Item: "battery_price_garage", Data: fmt.Sprintf("%.4f",hems.batGaragePrice)}
+		genVar.Postin <- Requestin{Node: "items", Item: "battery_price_garage", Data: fmt.Sprintf("%.4f", hems.batGaragePrice)}
 
 		hems.batKellerPrice = calculateBatteryPrice(mInfo.Msgobject[0:2], getSOC())
-		genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: fmt.Sprintf("%.4f",hems.batKellerPrice)}
+		genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: fmt.Sprintf("%.4f", hems.batKellerPrice)}
 
 		log.Println(getWeather())
 		genVar.Postin <- Requestin{Node: "items", Item: "meteomatics_weather", Data: getWeather()}
 
-		if hems.currPrice > hems.batGaragePrice {
+		if hems.currPrice >= hems.batGaragePrice {
 			hems.batGarageActive = true
 		} else {
 			hems.batGarageActive = false
 			zendureCmd("outputLimit", "6h0TduV3", int(0))
 		}
 
-//		hems.batGarageActive = true           // zum Test
+		//		hems.batGarageActive = true           // zum Test
 
 		doZoe := onOffByPrice(getItemState("schalter_zoe_zone"), mInfo.Msgobject)
 		if doZoe {
@@ -973,7 +985,7 @@ func chronoEvents(mInfo Msginfo) {
 	// this rule runs at minutes ending at 1
 	if strings.ContainsAny(mInfo.Msgobject[4:5], "1") {
 
-//		zendureCmd("write", "6h0TduV3", 200)
+		//		zendureCmd("write", "6h0TduV3", 200)
 
 		gast := getItemState("FHEM_Gast_da")
 		log.Println("Gast:", gast[0:2])
@@ -1016,9 +1028,9 @@ func rulesInit() int {
 	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.NoExpiration)
 	log.Println("Laden_48_EinAus stored: ", lEinAus)
 	hems.batGaragePrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), float64(zendure.soc))
-	genVar.Postin <- Requestin{Node: "items", Item: "battery_price_garage", Data: fmt.Sprintf("%.4f",hems.batGaragePrice)}
+	genVar.Postin <- Requestin{Node: "items", Item: "battery_price_garage", Data: fmt.Sprintf("%.4f", hems.batGaragePrice)}
 	hems.batKellerPrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), getSOC())
-	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: fmt.Sprintf("%.4f",hems.batKellerPrice)}
+	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: fmt.Sprintf("%.4f", hems.batKellerPrice)}
 	pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
 	genVar.Pers.Set("!BalkonPAC", pac, cache.NoExpiration)
 	log.Println("BalkonPAC stored: ", pac)
@@ -1085,7 +1097,7 @@ func rulesInit() int {
 // special functions as a support to make relatively short rules
 
 func calculateBatteryPrice(hour string, flSoc float64) float64 {
-//	var flSoc float64
+	//	var flSoc float64
 	var flZone float64
 	var prices []float64
 	var price string
@@ -1095,7 +1107,7 @@ func calculateBatteryPrice(hour string, flSoc float64) float64 {
 	//	boolWeather := judgeWeather(4)
 	boolWeather := judgePvForecast("2500")
 	//soc := getItemState("Solarakku_SOC")
-//	soc := getSOCstr()
+	//	soc := getSOCstr()
 	zone := getItemState("Tibber_avg7")
 	if zone == "0" {
 		zone = getItemState("Tibber_m1")
@@ -1107,13 +1119,14 @@ func calculateBatteryPrice(hour string, flSoc float64) float64 {
 	if flZone > float64(0.30) {
 		flZone = float64(0.30)
 	}
-//	flSoc, _ = strconv.ParseFloat(soc, 64)
+	//	flSoc, _ = strconv.ParseFloat(soc, 64)
 	// flSoc -= 50
 	flSoc -= 28
 	if flSoc < float64(0) {
 		hours = 0
 	} else {
-		hours = int(float64((flSoc * 4 / 7)))
+		//		hours = int(float64((flSoc * 4 / 7)))
+		hours = int(flSoc)
 		hours += 1
 	}
 	intH, _ := strconv.Atoi(hour)
@@ -1227,7 +1240,7 @@ func calculateBatteryPrice(hour string, flSoc float64) float64 {
 	log.Println("Bat-Price: ", price, hours)
 	log.Println(prices)
 	genVar.Pers.Set("!BAT_PRICE", price, cache.NoExpiration)
-//	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: price}
+	//	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: price}
 	retPrice, _ := strconv.ParseFloat(price, 64)
 	return retPrice
 }
