@@ -866,10 +866,10 @@ func chronoEvents(mInfo Msginfo) {
 		setCurrentPrice(mInfo.Msgobject[0:2], mInfo.Msgobject[3:5])
 		time.Sleep(5 * time.Second)
 
-		hems.batGaragePrice = calculateBatteryPrice(mInfo.Msgobject[0:2], float64(zendure.soc))
+		hems.batGaragePrice = calculateBatteryPrice(mInfo.Msgobject[0:2], float64(zendure.soc), false)
 		genVar.Postin <- Requestin{Node: "items", Item: "battery_price_garage", Data: fmt.Sprintf("%.4f", hems.batGaragePrice)}
 
-		hems.batKellerPrice = calculateBatteryPrice(mInfo.Msgobject[0:2], getSOC())
+		hems.batKellerPrice = calculateBatteryPrice(mInfo.Msgobject[0:2], getSOC(), true)
 		genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: fmt.Sprintf("%.4f", hems.batKellerPrice)}
 
 		log.Println(getWeather())
@@ -937,7 +937,8 @@ func chronoEvents(mInfo Msginfo) {
 			genVar.Pers.Delete("!LADEN_KLEIN")
 			log.Println("Laden_klein off")
 		}
-		pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
+//		pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
+		pac := fmt.Sprint("%d", zendure.solarInputPower)
 		genVar.Pers.Set("!BalkonPAC", pac, cache.NoExpiration)
 		guest := getItemState("gast_switch")
 		genVar.Pers.Set("!GUEST", guest, cache.NoExpiration)
@@ -1032,9 +1033,9 @@ func rulesInit() int {
 	lEinAus := getItemState("Laden_48_EinAus")
 	genVar.Pers.Set("Laden_48_EinAus", lEinAus, cache.NoExpiration)
 	log.Println("Laden_48_EinAus stored: ", lEinAus)
-	hems.batGaragePrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), float64(zendure.soc))
+	hems.batGaragePrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), float64(zendure.soc), false)
 	genVar.Postin <- Requestin{Node: "items", Item: "battery_price_garage", Data: fmt.Sprintf("%.4f", hems.batGaragePrice)}
-	hems.batKellerPrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), getSOC())
+	hems.batKellerPrice = calculateBatteryPrice(fmt.Sprintf("%02d", hour), getSOC(), true)
 	genVar.Postin <- Requestin{Node: "items", Item: "battery_price", Data: fmt.Sprintf("%.4f", hems.batKellerPrice)}
 	pac := getItemState("Balkonkraftwerk_Garage_Stromproduktion")
 	genVar.Pers.Set("!BalkonPAC", pac, cache.NoExpiration)
@@ -1101,7 +1102,7 @@ func rulesInit() int {
 
 // special functions as a support to make relatively short rules
 
-func calculateBatteryPrice(hour string, flSoc float64) float64 {
+func calculateBatteryPrice(hour string, flSoc float64, limit bool) float64 {
 	//	var flSoc float64
 	var flZone float64
 	var prices []float64
@@ -1123,6 +1124,13 @@ func calculateBatteryPrice(hour string, flSoc float64) float64 {
 	}
 	if flZone > float64(0.30) {
 		flZone = float64(0.30)
+	}
+	if limit == false {
+		zone = getItemState("Tibber_m1")
+		flZone, err = strconv.ParseFloat(zone, 64)
+		if err != nil {
+			flZone = float64(0.25)
+		}
 	}
 	//	flSoc, _ = strconv.ParseFloat(soc, 64)
 	// flSoc -= 50
